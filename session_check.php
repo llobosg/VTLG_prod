@@ -1,14 +1,13 @@
 <?php
-session_save_path('/tmp');
-/**
- * Verificación segura de sesión.
- * Solo se ejecuta en contexto web real (no en CLI).
- */
+// session_check.php
 
-// Salir inmediatamente si se ejecuta desde CLI (Railway build)
+// Salir en CLI (build de Railway)
 if (php_sapi_name() === 'cli') {
     return;
 }
+
+// ✅ Guardar sesiones en /tmp (único lugar persistente en Railway)
+session_save_path('/tmp');
 
 // Iniciar sesión si no está activa
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,20 +16,20 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Verificar autenticación completa
 $auth_ok = (
-    isset($_SESSION['user_id']) && 
-    isset($_SESSION['user']) && 
+    isset($_SESSION['user_id']) &&
+    isset($_SESSION['user']) &&
     isset($_SESSION['rol']) &&
-    is_int($_SESSION['user_id']) && 
+    is_int($_SESSION['user_id']) &&
     $_SESSION['user_id'] > 0
 );
 
 if (!$auth_ok) {
-    // Destruir sesión parcial
     session_destroy();
     if (!defined('SKIP_SESSION_REDIRECT')) {
         header('Location: /login.php');
         exit;
     }
+    return;
 }
 
 // Validar rol
