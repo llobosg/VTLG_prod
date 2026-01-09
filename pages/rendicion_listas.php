@@ -2,14 +2,10 @@
 require_once __DIR__ . '/../session_check.php';
 require_once __DIR__ . '/../config.php';
 
-$rol = $_SESSION['rol'] ?? 'usuario';
-$remesas = [];
+$pdo = getDBConnection();
 
 try {
-    $pdo = getDBConnection();
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Obtener todas las remesas que tengan al menos una rendición
     $stmt = $pdo->prepare("
         SELECT 
             r.id_rms,
@@ -17,105 +13,96 @@ try {
             r.despacho_rms,
             r.ref_clte_rms,
             r.total_transferir_rms,
-            r.estado_rms,
-            c.nombre_clt AS cliente_nombre,
-            m.mercancia_mrcc AS mercancia_nombre,
-            COALESCE(SUM(rend.monto_pago_rndcn), 0) AS total_cliente,
-            COALESCE(SUM(rend.monto_gastos_agencia_rndcn), 0) AS total_agencia
-        FROM remesa r
-        LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-        LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-        LEFT JOIN rendicion rend ON r.id_rms = rend.id_rms
-        WHERE r.estado_rms = 'solicitada'
+            c.nombre_clt AS cliente,
+            m.mercancia_mrcc AS mercancia,
+
+            SUM(
+                COALESCE(rd.monto_pago_rndcn,0) +
+                COALESCE(rd.monto_gastos_agencia_rndcn,0) +
+                COALESCE(rd.monto_iva_rndcn,0)
+            ) AS total_liquidacion
+
+        FROM rendicion rd
+        INNER JOIN remesa r ON r.id_rms = rd.id_rms
+        LEFT JOIN clientes c ON c.id_clt = r.cliente_rms
+        LEFT JOIN mercancias m ON m.id_mrcc = r.mercancia_rms
+
         GROUP BY r.id_rms
-        HAVING COUNT(rend.id_rndcn) > 0
         ORDER BY r.fecha_rms DESC
     ");
     $stmt->execute();
-    $remesas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $rendiciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (Throwable $e) {
-    error_log('Error rendicion_listas.php: ' . $e->getMessage());
-    $remesas = [];
+    error_log('[RENDICION_LISTAS] ' . $e->getMessage());
+    $rendiciones = [];
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
     <title>Rendición de Gastos</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
-<?php include __DIR__ . '/../includes/header.php'; ?>
+<h1>Rendición de Gastos</h1>
 
-<div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
-        <h2 style="font-weight:bold; display:flex; align-items:center; gap:0.5rem;">
-            <i class="fas fa-receipt"></i> Rendición de Gastos
-        </h2>
-        <a href="/pages/rendicion_view.php" class="btn-primary">
-            <i class="fas fa-plus"></i> Agregar Rendición
-        </a>
-    </div>
-
-    <div class="card">
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Despacho</th>
-                        <th>Ref.Clte.</th>
-                        <th>Mercancía</th>
-                        <th>Fondos Transferidos</th>
-                        <th>Total Liquidación</th>
-                        <th>Saldo</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($remesas)): ?>
-                    <tr>
-                        <td colspan="8" style="text-align:center;">No hay rendiciones registradas.</td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($remesas as $r):
-                        $totalCliente = (float)$r['total_cliente'];
-                        $totalAgencia = (float)$r['total_agencia'];
-                        $ivaAgencia = $totalAgencia * 0.19;
-                        $totalLiquidacion = $totalCliente + $totalAgencia + $ivaAgencia;
-                        $saldo = (float)$r['total_transferir_rms'] - $totalLiquidacion;
-                    ?>
-                    <tr>
-                        <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
-                        <td><?= htmlspecialchars($r['despacho_rms'] ?? '–') ?></td>
-                        <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
-                        <td><?= htmlspecialchars($r['mercancia_nombre'] ?? '–') ?></td>
-                        <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
-                        <td><?= number_format($totalLiquidacion, 0, ',', '.') ?></td>
-                        <td style="color:<?= $saldo > 0 ? '#2980b9' : '#e74c3c' ?>;">
-                            <?= number_format(abs($saldo), 0, ',', '.') ?>
-                            <?= $saldo > 0 ? ' (cliente)' : ' (agencia)' ?>
-                        </td>
-                        <td>
-                            <a href="/pages/rendicion_view.php?seleccionar=<?= (int)$r['id_rms'] ?>" class="btn-primary">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rms'] ?>" target="_blank" class="btn-comment">
-                                <i class="fas fa-file-pdf"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+<div class="toolbar">
+    <a href="/pages/rendicion_view.php?modo=insert" class="btn-primary">
+        ➕ Agregar Rendición
+    </a>
 </div>
+
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Despacho</th>
+            <th>Ref. Cliente</th>
+            <th>Mercancía</th>
+            <th>Fondos Transferidos</th>
+            <th>Total Liquidación</th>
+            <th>Saldo</th>
+            <th>Acción</th>
+        </tr>
+    </thead>
+    <tbody>
+
+    <?php if (!$rendiciones): ?>
+        <tr>
+            <td colspan="8">No hay rendiciones registradas</td>
+        </tr>
+    <?php endif; ?>
+
+    <?php foreach ($rendiciones as $r): 
+        $total = (float)$r['total_liquidacion'];
+        $fondos = (float)$r['total_transferir_rms'];
+        $saldo = $fondos - $total;
+    ?>
+        <tr>
+            <td><?= htmlspecialchars($r['cliente']) ?></td>
+            <td><?= htmlspecialchars($r['despacho_rms']) ?></td>
+            <td><?= htmlspecialchars($r['ref_clte_rms']) ?></td>
+            <td><?= htmlspecialchars($r['mercancia']) ?></td>
+            <td>$<?= number_format($fondos,0,',','.') ?></td>
+            <td>$<?= number_format($total,0,',','.') ?></td>
+            <td class="<?= $saldo < 0 ? 'negativo' : 'positivo' ?>">
+                $<?= number_format($saldo,0,',','.') ?>
+            </td>
+            <td>
+                <a href="/pages/rendicion_view.php?modo=edit&id_rms=<?= (int)$r['id_rms'] ?>"
+                   class="btn-secondary">
+                    ✏️ Editar
+                </a>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+
+    </tbody>
+</table>
+
 </body>
 </html>

@@ -1,5 +1,8 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../session_check.php';
+require_once __DIR__ . '/../config.php';
+
+$pdo = getDBConnection();
 
 $modo = $_GET['modo'] ?? 'insert';
 $id_rms = isset($_GET['id_rms']) ? (int)$_GET['id_rms'] : null;
