@@ -336,9 +336,15 @@ function cargarFichaRemesa(id_rms) {
             id_rms_actual = id_rms;
             cargarRendiciones(id_rms);
 
-            document.getElementById('ficha-remesa').style.display = 'block';
-            document.getElementById('btn-pdf-rendicion').style.display = 'inline-flex'; // ✅ Mostrar botón
-
+            const ficha = document.getElementById('ficha-remesa');
+            if (ficha) {
+                ficha.style.display = 'block';
+            }
+            const btnPdf = document.getElementById('btn-pdf-rendicion');
+            if (btnPdf) {
+                btnPdf.style.display = 'inline-flex';
+            }
+            
             id_rms_actual = id_rms;
             cargarRendiciones(id_rms);
         })
