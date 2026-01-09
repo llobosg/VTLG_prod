@@ -332,21 +332,21 @@ function cargarFichaRemesa(id_rms) {
             setField('afavor_ficha', a_favor);
             setField('saldo_ficha', saldo.toLocaleString('es-CL'));
 
-            document.getElementById('ficha-remesa').style.display = 'block';
-            id_rms_actual = id_rms;
-            cargarRendiciones(id_rms);
-
+            // Mostrar ficha si existe
             const ficha = document.getElementById('ficha-remesa');
             if (ficha) {
                 ficha.style.display = 'block';
             }
+
+            // Mostrar botón PDF si existe
             const btnPdf = document.getElementById('btn-pdf-rendicion');
             if (btnPdf) {
                 btnPdf.style.display = 'inline-flex';
             }
-            
+
             id_rms_actual = id_rms;
             cargarRendiciones(id_rms);
+
         })
         .catch(err => {
             console.error('Error al cargar ficha:', err);
