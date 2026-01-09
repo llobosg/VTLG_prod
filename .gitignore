@@ -1,5 +1,5 @@
 # Dependencias de Composer
-vendor/
+/vendor/
 composer.lock
 
 # Archivos del sistema

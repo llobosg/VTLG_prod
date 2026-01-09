@@ -13,37 +13,51 @@ if (!$id_rms || !is_numeric($id_rms)) {
 
 $pdo = getDBConnection();
 
-/**
- * 1️⃣ Obtener datos de la remesa
- */
-$stmt = $pdo->prepare("
-    SELECT 
-        r.*,
-        c.nombre_clt AS cliente_nombre,
-        m.mercancia_mrcc AS mercancia_nombre,
-        t.transporte_trnsprt AS transporte_nombre
-    FROM remesa r
-    LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-    LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-    LEFT JOIN transporte t ON r.cia_transp_rms = t.id_trnsprt
-    WHERE r.id_rms = ?
-");
-$stmt->execute([$id_rms]);
-$remesa = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    // 🔒 Iniciar transacción
+    $pdo->beginTransaction();
 
-if (!$remesa) {
-    die('Remesa no encontrada.');
+    /**
+     * 1️⃣ Obtener datos de la remesa
+     */
+    $stmt = $pdo->prepare("
+        SELECT 
+            r.*,
+            c.nombre_clt AS cliente_nombre,
+            m.mercancia_mrcc AS mercancia_nombre,
+            t.transporte_trnsprt AS transporte_nombre
+        FROM remesa r
+        LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
+        LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+        LEFT JOIN transporte t ON r.cia_transp_rms = t.id_trnsprt
+        WHERE r.id_rms = ?
+        FOR UPDATE
+    ");
+    $stmt->execute([$id_rms]);
+    $remesa = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$remesa) {
+        throw new Exception('Remesa no encontrada.');
+    }
+
+    /**
+     * 2️⃣ Actualizar estado
+     */
+    $update = $pdo->prepare("
+        UPDATE remesa 
+        SET estado_rms = 'solicitada' 
+        WHERE id_rms = ?
+    ");
+    $update->execute([$id_rms]);
+
+    // ✅ Confirmar cambios
+    $pdo->commit();
+
+} catch (Throwable $e) {
+    $pdo->rollBack();
+    error_log('Error generar_pdf: ' . $e->getMessage());
+    die('Error al generar el documento.');
 }
-
-/**
- * 2️⃣ Actualizar estado a "solicitada"
- */
-$update = $pdo->prepare("
-    UPDATE remesa 
-    SET estado_rms = 'solicitada' 
-    WHERE id_rms = ?
-");
-$update->execute([$id_rms]);
 
 /**
  * Helpers de formato
@@ -55,6 +69,7 @@ function fmt($val) {
 function fmtDecimal($val) {
     return number_format((float)$val, 2, ',', '.');
 }
+
 /**
  * 3️⃣ Generar PDF con Dompdf
  */
