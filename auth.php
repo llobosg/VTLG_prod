@@ -1,6 +1,6 @@
 <?php
-// auth.php
-session_save_path('/tmp'); // ✅ Obligatorio en Railway
+// auth.php (versión con PDO)
+session_save_path('/tmp');
 session_start();
 
 require_once __DIR__ . '/config.php';
@@ -19,39 +19,27 @@ if (empty($usuario) || empty($clave)) {
     exit;
 }
 
-$conn = getDBConnection();
-if (!$conn) {
-    error_log("Error: conexión nula en auth.php");
-    $_SESSION['error_login'] = 'Error de conexión. Intente más tarde.';
-    header('Location: /login.php');
-    exit;
-}
+try {
+    $pdo = getDBConnection();
+    $stmt = $pdo->prepare("SELECT id_usuario, nombre_usuario, usuario, password, rol FROM usuarios WHERE usuario = ? AND activo = 1");
+    $stmt->execute([$usuario]);
+    $user = $stmt->fetch();
 
-$stmt = mysqli_prepare($conn, "SELECT id_usuario, nombre_usuario, usuario, password, rol FROM usuarios WHERE usuario = ? AND activo = 1");
-if (!$stmt) {
-    error_log("Error prepare: " . mysqli_error($conn));
-    $_SESSION['error_login'] = 'Error interno.';
-    header('Location: /login.php');
-    exit;
-}
+    if ($user && password_verify($clave, $user['password'])) {
+        $_SESSION['user_id'] = (int)$user['id_usuario'];
+        $_SESSION['user'] = $user['nombre_usuario'];
+        $_SESSION['rol'] = $user['rol'];
 
-mysqli_stmt_bind_param($stmt, "s", $usuario);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
-$user = mysqli_fetch_assoc($result);
-mysqli_stmt_close($stmt);
-
-if ($user && password_verify($clave, $user['password'])) {
-    // ✅ Iniciar sesión correctamente
-    $_SESSION['user_id'] = (int)$user['id_usuario'];
-    $_SESSION['user'] = $user['nombre_usuario'];
-    $_SESSION['rol'] = $user['rol'];
-
-    error_log("✅ Login OK para: " . $user['usuario'] . " | Session ID: " . session_id());
-    header('Location: /pages/dashboard.php');
-    exit;
-} else {
-    $_SESSION['error_login'] = 'Usuario o contraseña incorrectos.';
+        header('Location: /pages/dashboard.php');
+        exit;
+    } else {
+        $_SESSION['error_login'] = 'Usuario o contraseña incorrectos.';
+        header('Location: /login.php');
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Error en auth.php: " . $e->getMessage());
+    $_SESSION['error_login'] = 'Error interno. Intente más tarde.';
     header('Location: /login.php');
     exit;
 }
