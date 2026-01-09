@@ -16,18 +16,17 @@ try {
 
     $stmt = $pdo->prepare("
         SELECT 
-            r.id_rendicion,
+            r.id_rndcn,
             r.id_rms,
             r.monto_pago_rndcn,
             r.monto_gastos_agencia_rndcn,
-            r.fecha_rendicion,
+            r.fecha_rndcn,
             rm.ref_clte_rms,
-            rm.fecha_rms,
             c.nombre_clt AS cliente_nombre
         FROM rendicion r
         LEFT JOIN remesa rm ON r.id_rms = rm.id_rms
         LEFT JOIN clientes c ON rm.id_clt_rms = c.id_clt
-        ORDER BY r.fecha_rendicion DESC, r.id_rendicion DESC
+        ORDER BY r.fecha_rndcn DESC, r.id_rndcn DESC
     ");
     $stmt->execute();
     $rendiciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -40,21 +39,12 @@ try {
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Lista de Rendiciones - SIGA</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
-
-    <style>
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.2rem;
-        }
-    </style>
 </head>
 <body>
 
@@ -62,7 +52,7 @@ try {
 
 <div class="container">
     <div class="card-header">
-        <h2 style="font-weight: bold;">
+        <h2>
             <i class="fas fa-file-invoice"></i> Lista de Rendiciones de Gasto
         </h2>
         <a href="/pages/remesa_lista.php" class="btn-secondary">
@@ -79,7 +69,7 @@ try {
                     <th>Remesa</th>
                     <th>Cliente</th>
                     <th>Ref. Cliente</th>
-                    <th>Fecha Rendición</th>
+                    <th>Fecha</th>
                     <th>Monto Cliente</th>
                     <th>Monto Agencia</th>
                     <th>Acciones</th>
@@ -88,11 +78,11 @@ try {
             <tbody>
             <?php foreach ($rendiciones as $r): ?>
                 <tr>
-                    <td><?= (int)$r['id_rendicion'] ?></td>
+                    <td><?= (int)$r['id_rndcn'] ?></td>
                     <td><?= (int)$r['id_rms'] ?></td>
                     <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
                     <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
-                    <td><?= htmlspecialchars($r['fecha_rendicion'] ?? '–') ?></td>
+                    <td><?= htmlspecialchars($r['fecha_rndcn'] ?? '–') ?></td>
                     <td><?= number_format((float)$r['monto_pago_rndcn'], 0, ',', '.') ?></td>
                     <td><?= number_format((float)$r['monto_gastos_agencia_rndcn'], 0, ',', '.') ?></td>
                     <td>
