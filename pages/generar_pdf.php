@@ -13,6 +13,9 @@ if (!$id_rms || !is_numeric($id_rms)) {
 
 $pdo = getDBConnection();
 
+/**
+ * 1️⃣ Obtener datos de la remesa
+ */
 $stmt = $pdo->prepare("
     SELECT 
         r.*,
@@ -32,13 +35,29 @@ if (!$remesa) {
     die('Remesa no encontrada.');
 }
 
-// Actualizar estado a "solicitada"
-$pdo->prepare("UPDATE remesa SET estado_rms = 'solicitada' WHERE id_rms = ?")->execute([$id_rms]);
-$stmt->execute([$id_rms]);
-$remesa = $stmt->fetch(PDO::FETCH_ASSOC);
+/**
+ * 2️⃣ Actualizar estado a "solicitada"
+ */
+$update = $pdo->prepare("
+    UPDATE remesa 
+    SET estado_rms = 'solicitada' 
+    WHERE id_rms = ?
+");
+$update->execute([$id_rms]);
 
-function fmt($val) { return number_format($val, 0, ',', '.'); }
-function fmtDecimal($val) { return number_format($val, 2, ',', '.'); }
+/**
+ * Helpers de formato
+ */
+function fmt($val) {
+    return number_format((float)$val, 0, ',', '.');
+}
+
+function fmtDecimal($val) {
+    return number_format((float)$val, 2, ',', '.');
+}
+/**
+ * 3️⃣ Generar PDF con Dompdf
+ */
 
 $options = new Options();
 $options->set('defaultFont', 'Arial');
