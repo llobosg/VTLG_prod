@@ -82,105 +82,71 @@ if ($id_rms && is_numeric($id_rms) && php_sapi_name() !== 'cli') {
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="container">
-
-<?php if (!$remesa): ?>
-
-    <div class="card" style="text-align:center; padding:2rem;">
-        <p>❌ No se encontró la remesa seleccionada.</p>
-        <a href="/pages/rendicion_listas.php" class="btn-secondary">
-            <i class="fas fa-arrow-left"></i> Volver
-        </a>
-    </div>
-
-<?php else: ?>
-
-    <!-- ================= HEADER ================= -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
         <h2 style="font-weight:bold; display:flex; align-items:center; gap:0.5rem;">
             <i class="fas fa-receipt"></i> Rendición de Gastos
         </h2>
-        <button class="btn-primary" onclick="abrirSubmodalRendicion()">
-            <i class="fas fa-plus"></i> Agregar Concepto
-        </button>
+        <a href="/pages/rendicion_view.php" class="btn-primary">
+            <i class="fas fa-plus"></i> Agregar Rendición
+        </a>
     </div>
 
-    <!-- ================= FICHA REMESA ================= -->
-    <div class="card" style="margin-bottom:1.4rem;">
-        <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:0.6rem; font-size:0.9rem;">
-            <div><strong>Cliente:</strong></div><div><?= htmlspecialchars($remesa['cliente_nombre']) ?></div>
-            <div><strong>RUT:</strong></div><div><?= htmlspecialchars($remesa['rut_clt']) ?></div>
-            <div><strong>Fecha:</strong></div><div><?= htmlspecialchars($remesa['fecha_rms']) ?></div>
-
-            <div><strong>Despacho:</strong></div><div><?= htmlspecialchars($remesa['despacho_rms']) ?></div>
-            <div><strong>Ref. Cliente:</strong></div><div><?= htmlspecialchars($remesa['ref_clte_rms']) ?></div>
-            <div><strong>Mercancía:</strong></div><div><?= htmlspecialchars($remesa['mercancia_nombre']) ?></div>
-
-            <div><strong>Total Transferido:</strong></div>
-            <div><?= number_format($remesa['total_transferir_rms'],0,',','.') ?></div>
-        </div>
-    </div>
-
-    <!-- ================= GASTOS CLIENTE ================= -->
     <div class="card">
-        <h3>Gastos Cliente</h3>
         <div class="table-container">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Concepto</th>
-                        <th>N° Doc</th>
-                        <th>Fecha</th>
-                        <th>Monto</th>
+                        <th>Cliente</th>
+                        <th>Despacho</th>
+                        <th>Ref.Clte.</th>
+                        <th>Mercancía</th>
+                        <th>Fondos Transferidos</th>
+                        <th>Total Liquidación</th>
+                        <th>Saldo</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                <?php if (empty($conceptos_cliente)): ?>
-                    <tr><td colspan="4" style="text-align:center;">Sin registros</td></tr>
-                <?php else: foreach ($conceptos_cliente as $c): ?>
+                <?php if (empty($remesas)): ?>
                     <tr>
-                        <td><?= htmlspecialchars($c['concepto_rndcn']) ?></td>
-                        <td><?= htmlspecialchars($c['nro_documento_rndcn'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($c['fecha_pago_rndcn'] ?? '') ?></td>
-                        <td><?= number_format($c['monto_pago_rndcn'],0,',','.') ?></td>
+                        <td colspan="8" style="text-align:center;">No hay rendiciones registradas.</td>
                     </tr>
-                <?php endforeach; endif; ?>
+                <?php else: ?>
+                    <?php foreach ($remesas as $r):
+                        $totalCliente = (float)$r['total_cliente'];
+                        $totalAgencia = (float)$r['total_agencia'];
+                        $ivaAgencia = $totalAgencia * 0.19;
+                        $totalLiquidacion = $totalCliente + $totalAgencia + $ivaAgencia;
+                        $saldo = (float)$r['total_transferir_rms'] - $totalLiquidacion;
+                    ?>
+                    <tr>
+                        <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['despacho_rms'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['mercancia_nombre'] ?? '–') ?></td>
+                        <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
+                        <td><?= number_format($totalLiquidacion, 0, ',', '.') ?></td>
+                        <td style="color:<?= $saldo > 0 ? '#2980b9' : '#e74c3c' ?>;">
+                            <?= number_format(abs($saldo), 0, ',', '.') ?>
+                            <?= $saldo > 0 ? ' (cliente)' : ' (agencia)' ?>
+                        </td>
+                        <td>
+                            <a href="/pages/rendicion_view.php?seleccionar=<?= (int)$r['id_rms'] ?>" class="btn-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rms'] ?>" target="_blank" class="btn-comment">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
-
-    <!-- ================= GASTOS AGENCIA ================= -->
-    <div class="card" style="margin-top:1.2rem;">
-        <h3>Gastos Agencia</h3>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Concepto</th>
-                        <th>N° Doc</th>
-                        <th>Fecha</th>
-                        <th>Monto Neto</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($conceptos_agencia)): ?>
-                    <tr><td colspan="4" style="text-align:center;">Sin registros</td></tr>
-                <?php else: foreach ($conceptos_agencia as $c): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($c['concepto_agencia_rndcn']) ?></td>
-                        <td><?= htmlspecialchars($c['nro_documento_rndcn'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($c['fecha_pago_rndcn'] ?? '') ?></td>
-                        <td><?= number_format($c['monto_gastos_agencia_rndcn'],0,',','.') ?></td>
-                    </tr>
-                <?php endforeach; endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-<?php endif; ?>
-
 </div>
+
 <!-- SUBMODAL RENDICIÓN -->
 <div id="submodal-rendicion" class="submodal">
     <div class="submodal-content" style="max-width: 650px; padding: 1.8rem; position: relative;">
