@@ -2,80 +2,62 @@
 require_once __DIR__ . '/../session_check.php';
 require_once __DIR__ . '/../config.php';
 
-$rol = $_SESSION['rol'] ?? 'usuario';
-if (!in_array($rol, ['admin', 'comercial'])) {
-    header('HTTP/1.1 403 Forbidden');
-    exit('Acceso denegado.');
-}
+$pdo = getDBConnection();
 
-/* =====================================================
-   PARÁMETRO SOPORTA ?seleccionar= y ?id=
-===================================================== */
-$id_rms = $_GET['seleccionar'] ?? $_GET['id'] ?? null;
+/*
+=====================================================
+CARGA DE REMESAS CON TOTALES DE RENDICIÓN
+=====================================================
+*/
+try {
+    $stmt = $pdo->prepare("
+        SELECT
+            r.id_rms,
+            r.despacho_rms,
+            r.ref_clte_rms,
+            r.total_transferir_rms,
 
-$remesa = null;
-$conceptos_cliente = [];
-$conceptos_agencia = [];
+            c.nombre_clt AS cliente_nombre,
+            m.mercancia_mrcc AS mercancia_nombre,
 
-if ($id_rms && is_numeric($id_rms) && php_sapi_name() !== 'cli') {
-    try {
-        $pdo = getDBConnection();
+            /* Total gastos cliente */
+            (
+                SELECT IFNULL(SUM(rd.monto_pago_rndcn),0)
+                FROM rendicion rd
+                WHERE rd.id_rms = r.id_rms
+                  AND rd.concepto_rndcn IS NOT NULL
+            ) AS total_cliente,
 
-        /* === REMESA + CLIENTE + MERCANCÍA === */
-        $stmt = $pdo->prepare("
-            SELECT 
-                r.*,
-                c.nombre_clt AS cliente_nombre,
-                c.rut_clt,
-                c.direccion_clt,
-                c.ciudad_clt,
-                m.mercancia_mrcc AS mercancia_nombre
-            FROM remesa r
-            LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-            LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-            WHERE r.id_rms = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$id_rms]);
-        $remesa = $stmt->fetch(PDO::FETCH_ASSOC);
+            /* Total gastos agencia (NETO, sin IVA) */
+            (
+                SELECT IFNULL(SUM(rd.monto_gastos_agencia_rndcn),0)
+                FROM rendicion rd
+                WHERE rd.id_rms = r.id_rms
+                  AND rd.concepto_agencia_rndcn IS NOT NULL
+            ) AS total_agencia
 
-        if ($remesa) {
-            /* === CONCEPTOS CLIENTE === */
-            $stmt = $pdo->prepare("
-                SELECT *
-                FROM rendicion
-                WHERE id_rms = ?
-                  AND concepto_rndcn IS NOT NULL
-                ORDER BY id_rndcn ASC
-            ");
-            $stmt->execute([$id_rms]);
-            $conceptos_cliente = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        FROM remesa r
+        LEFT JOIN clientes c ON c.id_clt = r.cliente_rms
+        LEFT JOIN mercancias m ON m.id_mrcc = r.mercancia_rms
+        ORDER BY r.id_rms DESC
+    ");
+    $stmt->execute();
+    $remesas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            /* === CONCEPTOS AGENCIA === */
-            $stmt = $pdo->prepare("
-                SELECT *
-                FROM rendicion
-                WHERE id_rms = ?
-                  AND concepto_agencia_rndcn IS NOT NULL
-                ORDER BY id_rndcn ASC
-            ");
-            $stmt->execute([$id_rms]);
-            $conceptos_agencia = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-    } catch (Throwable $e) {
-        error_log('Error rendicion_view.php: ' . $e->getMessage());
-    }
+} catch (Throwable $e) {
+    error_log('Error rendicion_listas.php: ' . $e->getMessage());
+    $remesas = [];
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Rendición de Gastos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
 
