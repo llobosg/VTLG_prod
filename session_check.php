@@ -9,6 +9,8 @@ if (php_sapi_name() === 'cli') {
     return;
 }
 
+session_save_path('/tmp');
+
 // Iniciar sesión si no está activa
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

@@ -1,4 +1,5 @@
 <?php
+session_save_path('/tmp');
 session_start();
 require_once __DIR__ . '/config.php';
 
@@ -61,6 +62,8 @@ if ($user && password_verify($clave, $user['password'])) {
     $_SESSION['rol'] = $user['rol']; // ✅ Corregido: era $username
 
     // Redirigir según rol
+    error_log("Login exitoso para: " . $user['usuario']);
+    error_log("Session ID: " . session_id());
     header('Location: /pages/dashboard.php');
     exit;
 } else {
