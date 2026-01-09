@@ -1,0 +1,197 @@
+<?php
+require_once '../session_check.php';
+require_once '../config.php';
+
+// 🔒 Protección: no ejecutar en CLI (Railway build)
+if (php_sapi_name() === 'cli') {
+    http_response_code(403);
+    exit('Acceso denegado.');
+}
+
+header('Content-Type: application/json');
+$pdo = getDBConnection();
+
+// ✅ Leer acción desde $_POST (FormData, no JSON)
+$action = $_POST['action'] ?? '';
+
+try {
+    // === CREAR CABECERA DE NOTA DE COBRANZA ===
+    if ($action === 'crear_cabecera') {
+        $id_rms = $_POST['id_rms'] ?? null;
+        if (!$id_rms) {
+            echo json_encode(['success' => false, 'message' => 'ID de remesa requerido.']);
+            exit;
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $fecha_hoy = date('Ymd');
+            $base = "NC-{$fecha_hoy}-";
+
+            $stmt = $pdo->prepare("SELECT nro_nc FROM notacobranza WHERE nro_nc LIKE ? ORDER BY nro_nc DESC LIMIT 1");
+            $stmt->execute(["{$base}%"]);
+            $ultimo = $stmt->fetchColumn();
+
+            $next_num = $ultimo ? str_pad((int)substr($ultimo, -4) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+            $nro_nc = $base . $next_num;
+
+            $stmt = $pdo->prepare("INSERT INTO notacobranza (id_rms_nc, fecha_nc, nro_nc) VALUES (?, CURDATE(), ?)");
+            $stmt->execute([$id_rms, $nro_nc]);
+            $id_cabecera = $pdo->lastInsertId();
+
+            $pdo->commit();
+            echo json_encode(['success' => true, 'id_cabecera' => (int)$id_cabecera]);
+        } catch (Exception $e) {
+            $pdo->rollback();
+            throw $e;
+        }
+        exit;
+    }
+
+    // === CREAR DETALLE ===
+    if ($action === 'crear_detalle') {
+        if (!isset($_POST['id_cabecera'])) {
+            echo json_encode(['success' => false, 'message' => 'ID de cabecera requerido.']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO detalle_nc (
+                id_cabecera, item_detalle, proveedor_detalle, nro_doc_detalle,
+                montoneto_detalle, montoiva_detalle, monto_detalle
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            $_POST['id_cabecera'],
+            $_POST['item_detalle'] ?? '',
+            $_POST['proveedor_detalle'] ?? '',
+            $_POST['nro_doc_detalle'] ?? '',
+            $_POST['montoneto_detalle'] ?? 0,
+            $_POST['montoiva_detalle'] ?? 0,
+            $_POST['monto_detalle'] ?? 0
+        ]);
+
+        actualizarTotalesCabecera($_POST['id_cabecera'], $pdo);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // === ACTUALIZAR DETALLE ===
+    if ($action === 'actualizar_detalle') {
+        if (!isset($_POST['id_detalle'])) {
+            echo json_encode(['success' => false, 'message' => 'ID de detalle requerido.']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE detalle_nc SET
+                item_detalle = ?,
+                proveedor_detalle = ?,
+                nro_doc_detalle = ?,
+                montoneto_detalle = ?,
+                montoiva_detalle = ?,
+                monto_detalle = ?
+            WHERE id_detalle = ?
+        ");
+        $stmt->execute([
+            $_POST['item_detalle'] ?? '',
+            $_POST['proveedor_detalle'] ?? '',
+            $_POST['nro_doc_detalle'] ?? '',
+            $_POST['montoneto_detalle'] ?? 0,
+            $_POST['montoiva_detalle'] ?? 0,
+            $_POST['monto_detalle'] ?? 0,
+            $_POST['id_detalle']
+        ]);
+
+        actualizarTotalesCabecera($_POST['id_cabecera'], $pdo);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // === ELIMINAR DETALLE ===
+    if ($action === 'eliminar_detalle') {
+        if (!isset($_POST['id_detalle'])) {
+            echo json_encode(['success' => false, 'message' => 'ID de detalle requerido.']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT id_cabecera FROM detalle_nc WHERE id_detalle = ?");
+        $stmt->execute([$_POST['id_detalle']]);
+        $id_cabecera = $stmt->fetchColumn();
+
+        if (!$id_cabecera) {
+            echo json_encode(['success' => false, 'message' => 'Detalle no encontrado.']);
+            exit;
+        }
+
+        $pdo->prepare("DELETE FROM detalle_nc WHERE id_detalle = ?")->execute([$_POST['id_detalle']]);
+        actualizarTotalesCabecera($id_cabecera, $pdo);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // === ACTUALIZAR CONCEPTO CABECERA ===
+    if ($action === 'actualizar_concepto_cabecera') {
+        if (!isset($_POST['id_cabecera']) || !isset($_POST['concepto_nc'])) {
+            echo json_encode(['success' => false, 'message' => 'Datos incompletos.']);
+            exit;
+        }
+
+        $pdo->prepare("UPDATE notacobranza SET concepto_nc = ? WHERE id_cabecera = ?")
+            ->execute([$_POST['concepto_nc'], $_POST['id_cabecera']]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // === ELIMINAR CABECERA COMPLETA ===
+    if ($action === 'eliminar_cabecera') {
+        if (!isset($_POST['id_cabecera'])) {
+            echo json_encode(['success' => false, 'message' => 'ID de cabecera requerido.']);
+            exit;
+        }
+
+        $pdo->prepare("DELETE FROM notacobranza WHERE id_cabecera = ?")->execute([$_POST['id_cabecera']]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // === ACCIÓN NO RECONOCIDA ===
+    error_log("Acción no válida en notacobranza_logic: " . $action);
+    echo json_encode(['success' => false, 'message' => 'Acción no válida.']);
+
+} catch (Exception $e) {
+    error_log("Error en notacobranza_logic: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Error interno: ' . $e->getMessage()]);
+}
+
+// === FUNCIÓN AUXILIAR ===
+function actualizarTotalesCabecera($id_cabecera, $pdo) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM detalle_nc WHERE id_cabecera = ?");
+    $stmt->execute([$id_cabecera]);
+    $conteo = $stmt->fetchColumn();
+
+    if ($conteo == 0) {
+        $pdo->prepare("UPDATE notacobranza SET 
+            total_neto_nc = 0, 
+            total_iva_nc = 0, 
+            total_monto_nc = 0,
+            nro_nc = NULL,
+            concepto_nc = NULL
+        WHERE id_cabecera = ?")->execute([$id_cabecera]);
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT 
+                COALESCE(SUM(montoneto_detalle), 0),
+                COALESCE(SUM(montoiva_detalle), 0),
+                COALESCE(SUM(monto_detalle), 0)
+            FROM detalle_nc WHERE id_cabecera = ?
+        ");
+        $stmt->execute([$id_cabecera]);
+        [$total_neto, $total_iva, $total_monto] = $stmt->fetch(PDO::FETCH_NUM);
+
+        $pdo->prepare("UPDATE notacobranza SET 
+            total_neto_nc = ?, total_iva_nc = ?, total_monto_nc = ?
+        WHERE id_cabecera = ?")->execute([$total_neto, $total_iva, $total_monto]);
+    }
+}
+?>
