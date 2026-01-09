@@ -228,7 +228,36 @@ try {
 </div>
 
 <script>
+const $ = id => document.getElementById(id);
+
+function safeText(id, value) {
+    const el = $(id);
+    if (!el) return console.warn('[DOM MISS]', id);
+    el.innerText = value;
+}
+
+function safeShow(id, display = 'block') {
+    const el = $(id);
+    if (!el) return console.warn('[DOM MISS]', id);
+    el.style.display = display;
+}
+
+function safeHide(id) {
+    const el = $(id);
+    if (!el) return console.warn('[DOM MISS]', id);
+    el.style.display = 'none';
+}
+
+function safeClear(el) {
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+/* =====================================================
+   ESTADO GLOBAL
+===================================================== */
 let id_rms_actual = null;
+let id_rndcn_a_eliminar = null;
 
 // === BÚSQUEDA INTELIGENTE ===
 document.getElementById('busqueda-inteligente')?.addEventListener('input', async function() {
@@ -269,192 +298,111 @@ document.getElementById('busqueda-inteligente')?.addEventListener('input', async
 });
 
 // === CARGAR FICHA DE REMESA ===
-function cargarFichaRemesa(id_rms) {
-    fetch(`/api/get_remesa.php?id=${id_rms}`)
+function cargarFichaRemesa(id) {
+    console.log('[RENDICION] cargarFichaRemesa', id);
+
+    fetch(`/api/get_remesa.php?id=${id}`)
         .then(r => r.json())
         .then(data => {
-            if (!data) return;
-
-            const setField = (id, value) => {
-                const el = document.getElementById(id);
-                if (el) el.innerText = value;
-            };
-
-            setField('id_clt_ficha', data.id_clt_rms || '–');
-            setField('cliente_ficha', data.cliente_nombre || '–');
-            setField('contacto_ficha', data.contacto_rms || '');
-            setField('fecha_ficha', data.fecha_rms || '');
-            setField('mes_ficha', data.mes_rms || '');
-            setField('despacho_ficha', data.despacho_rms || '');
-            setField('ref_clte_ficha', data.ref_clte_rms || '');
-            setField('mercancia_ficha', data.mercancia_nombre || '–');
-            setField('estado_ficha', data.estado_rms || '');
-
-            const hiddenIdClt = document.getElementById('id_clt_rms_hidden');
-            if (hiddenIdClt) hiddenIdClt.value = data.id_clt_rms || '';
-
-            // === TOTALES PRINCIPALES ===
-            const total_tesoreria = parseFloat(data.total_tesoreria2_rms) || 0;
-            const gastos_operacionales = parseFloat(data.total_gastos_operacionales2_rms) || 0;
-            const total_transferir = parseFloat(data.total_transferir_rms) || 0;
-
-            setField('total_tesoreria_ficha', total_tesoreria.toLocaleString('es-CL'));
-            setField('gastos_operacionales_ficha', gastos_operacionales.toLocaleString('es-CL'));
-            setField('total_transferir_ficha', total_transferir.toLocaleString('es-CL'));
-
-            // === GASTOS OPERACIONALES DETALLADOS ===
-            const subtotal_gastos = parseFloat(data.subtotal_gastos_operacionales_rms) || 0;
-            const iva = parseFloat(data.iva_rms) || 0;
-            const total_gastos_operacionales2 = parseFloat(data.total_gastos_operacionales2_rms) || 0;
-
-            setField('subtotal_gastos_ficha', subtotal_gastos.toLocaleString('es-CL'));
-            setField('iva_ficha', iva.toLocaleString('es-CL'));
-            setField('total_gastos_operacionales2_ficha', total_gastos_operacionales2.toLocaleString('es-CL'));
-
-            // === CÁLCULO DE SALDOS ===
-            const a_favor = total_transferir > total_tesoreria ? 'agencia' : 'cliente';
-            const saldo = Math.abs(total_transferir - total_tesoreria);
-
-            setField('afavor_ficha', a_favor);
-            setField('saldo_ficha', saldo.toLocaleString('es-CL'));
-
-            // Mostrar ficha si existe
-            const ficha = document.getElementById('ficha-remesa');
-            if (ficha) {
-                ficha.style.display = 'block';
+            if (!data) {
+                console.warn('[RENDICION] Remesa vacía');
+                return;
             }
 
-            // Mostrar botón PDF si existe
-            const btnPdf = document.getElementById('btn-pdf-rendicion');
-            if (btnPdf) {
-                btnPdf.style.display = 'inline-flex';
-            }
+            id_rms_actual = id;
 
-            id_rms_actual = id_rms;
-            cargarRendiciones(id_rms);
+            safeText('cliente_ficha', data.cliente_nombre || '–');
+            safeText('despacho_ficha', data.despacho_rms || '–');
+            safeText('ref_clte_ficha', data.ref_clte_rms || '–');
 
+            safeShow('ficha-remesa');
+            safeShow('btn-pdf-rendicion', 'inline-flex');
+
+            cargarRendiciones(id);
         })
-        .catch(err => {
-            console.error('Error al cargar ficha:', err);
-            alert('Error al cargar la ficha de remesa.');
+        .catch(e => {
+            console.error('[RENDICION] Error ficha', e);
+            alert('Error al cargar ficha de remesa');
         });
 }
 
 // === CARGAR RENDICIONES (CON CÁLCULO DE TOTALES) ===
-function cargarRendiciones(id_rms) {
-    fetch(`/api/get_rendiciones.php?id=${id_rms}`)
+function cargarRendiciones(id) {
+    console.log('[RENDICION] cargarRendiciones', id);
+
+    fetch(`/api/get_rendiciones.php?id=${id}`)
         .then(r => r.json())
-        .then(rendiciones => {
-            const tbody = document.getElementById('lista-rendiciones');
-            if (rendiciones.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Sin conceptos registrados.</td></tr>';
-                actualizarTotales(0, 0);
+        .then(lista => {
+            const tbody = $('lista-rendiciones');
+            if (!tbody) {
+                console.warn('[DOM MISS] lista-rendiciones');
+                return;
+            }
+
+            safeClear(tbody);
+
+            if (!Array.isArray(lista) || lista.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.textAlign = 'center';
+                td.innerText = 'Sin conceptos registrados.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
                 return;
             }
 
             let totalCliente = 0;
             let totalAgencia = 0;
 
-            tbody.innerHTML = rendiciones.map(r => {
+            lista.forEach(r => {
+                const tr = document.createElement('tr');
+
                 const tipo = r.concepto_rndcn ? 'Cliente' : 'Agencia';
                 const concepto = r.concepto_rndcn || r.concepto_agencia_rndcn || '–';
-                const monto = r.concepto_rndcn ? parseFloat(r.monto_pago_rndcn) : parseFloat(r.monto_gastos_agencia_rndcn);
-                const montoNum = isNaN(monto) ? 0 : monto;
+                const monto = r.concepto_rndcn
+                    ? Number(r.monto_pago_rndcn || 0)
+                    : Number(r.monto_gastos_agencia_rndcn || 0);
 
-                if (r.concepto_rndcn) totalCliente += montoNum;
-                else totalAgencia += montoNum;
+                if (r.concepto_rndcn) totalCliente += monto;
+                else totalAgencia += monto;
 
-                return `
-                    <tr>
-                        <td>${tipo}</td>
-                        <td>${concepto}</td>
-                        <td>${r.nro_documento_rndcn || '-'}</td>
-                        <td>${r.fecha_pago_rndcn || '-'}</td>
-                        <td>${montoNum.toLocaleString('es-CL')}</td>
-                        <td>
-                            <a href="#" class="btn-edit" title="Editar" onclick="editarRendicion(${r.id_rndcn})">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(${r.id_rndcn})">
-                                <i class="fas fa-trash-alt"></i>
-                            </a>
-                        </td>
-                    </tr>
+                tr.innerHTML = `
+                    <td>${tipo}</td>
+                    <td>${concepto}</td>
+                    <td>${r.nro_documento_rndcn || '-'}</td>
+                    <td>${r.fecha_pago_rndcn || '-'}</td>
+                    <td>${monto.toLocaleString('es-CL')}</td>
+                    <td>
+                        <a href="#" onclick="editarRendicion(${r.id_rndcn})"><i class="fas fa-edit"></i></a>
+                        <a href="#" onclick="confirmarEliminar(${r.id_rndcn})"><i class="fas fa-trash"></i></a>
+                    </td>
                 `;
-            }).join('');
+                tbody.appendChild(tr);
+            });
 
             actualizarTotales(totalCliente, totalAgencia);
         })
-        .catch(err => {
-            console.error('Error al cargar rendiciones:', err);
-            alert('Error al cargar las rendiciones.');
+        .catch(e => {
+            console.error('[RENDICION] Error rendiciones', e);
         });
 }
 
 // === ACTUALIZAR TOTALES (CON FICHA) ===
 function actualizarTotales(totalCliente, totalAgencia) {
-    const contenedor = document.getElementById('contenedor-totales');
-    if (!contenedor) return;
+    console.log('[RENDICION] actualizarTotales');
 
-    const netoAgencia = totalAgencia;
-    const ivaAgencia = netoAgencia * 0.19;
-    const totalGastosAgencia = netoAgencia + ivaAgencia;
-    
-    // Obtener total_transferir desde la ficha
-    const totalTransferirText = document.getElementById('total_transferir_ficha')?.innerText || '0';
-    const totalTransferir = parseFloat(totalTransferirText.replace(/\./g, '').replace(',', '.')) || 0;
-    
-    const totalRendicion = totalCliente + totalGastosAgencia;
-    const saldo = totalTransferir - totalRendicion;
-    
-    let aFavor = 'OK';
-    if (saldo > 0) aFavor = 'cliente';
-    else if (saldo < 0) aFavor = 'agencia';
+    const cont = $('contenedor-totales');
+    if (!cont) return console.warn('[DOM MISS] contenedor-totales');
 
-    // ✅ ACTUALIZAR FICHA DE REMESA (SIN DECIMALES)
-    const setFicha = (id, valor) => {
-        const el = document.getElementById(id);
-        if (el) el.innerText = valor.toLocaleString('es-CL', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        });
-    };
+    const iva = totalAgencia * 0.19;
+    const total = totalCliente + totalAgencia + iva;
 
-    setFicha('total_gastos_ctaclte_ficha', totalCliente);
-    setFicha('total_gastos_agencia_ficha', totalGastosAgencia);
-    setFicha('total_rendicion_ficha', totalRendicion);
-    setFicha('saldo_ficha', Math.abs(saldo));
-    setFicha('afavor_ficha', aFavor !== 'OK' ? aFavor : 'equilibrado');
+    safeClear(cont);
 
-    // ✅ ACTUALIZAR SECCIÓN DE TOTALES (tabla inferior)
-    contenedor.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-weight: bold; font-size: 0.95rem;">
-            <div style="display: flex; justify-content: space-between;">
-                <span>TOTAL CLIENTE:</span>
-                <span style="color: #2c3e50;">${totalCliente.toLocaleString('es-CL')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>NETO AGENCIA:</span>
-                <span style="color: #2c3e50;">${netoAgencia.toLocaleString('es-CL')}</span>
-            </div>
-            <div></div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>IVA 19%:</span>
-                <span style="color: #2c3e50;">${ivaAgencia.toLocaleString('es-CL')}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>SALDO:</span>
-                <span style="color: ${saldo > 0 ? '#27ae60' : (saldo < 0 ? '#e74c3c' : '#3498db')};">
-                    ${Math.abs(saldo).toLocaleString('es-CL')}
-                    ${aFavor !== 'OK' ? `(${aFavor})` : ''}
-                </span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>TOTAL GASTOS AGENCIA:</span>
-                <span style="color: #2c3e50;">${totalGastosAgencia.toLocaleString('es-CL')}</span>
-            </div>
-        </div>
-    `;
+    const div = document.createElement('div');
+    div.innerText = `Total Cliente: ${totalCliente.toLocaleString('es-CL')} | Total Agencia: ${totalAgencia.toLocaleString('es-CL')} | IVA: ${iva.toLocaleString('es-CL')}`;
+    cont.appendChild(div);
 }
 
 // === SUBMODAL: alternar grupos ===
@@ -611,7 +559,7 @@ let id_rndcn_a_eliminar = null;
 
 function confirmarEliminar(id) {
     id_rndcn_a_eliminar = id;
-    document.getElementById('modal-confirm').style.display = 'flex';
+    safeShow('modal-confirm', 'flex');
 }
 
 function confirmarEliminarAction() {
@@ -636,7 +584,7 @@ function confirmarEliminarAction() {
 }
 
 function cerrarModal() {
-    document.getElementById('modal-confirm').style.display = 'none';
+    safeHide('modal-confirm');
 }
 
 // Cerrar resultados al hacer clic fuera
@@ -717,12 +665,10 @@ function generarPDFRendicion() {
 }
 
 // Al cargar la página, si hay ?seleccionar=ID, cargar esa remesa
-window.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const idSeleccionar = urlParams.get('seleccionar');
-    if (idSeleccionar) {
-        cargarFichaRemesa(idSeleccionar);
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const p = new URLSearchParams(window.location.search);
+    const id = p.get('seleccionar');
+    if (id) cargarFichaRemesa(id);
 });
 </script>
 </body>
