@@ -1,16 +1,3 @@
-<?php
-// login.php
-session_save_path('/tmp');
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Si ya hay sesión, redirigir al dashboard
-if (!empty($_SESSION['user_id'])) {
-    header('Location: /pages/dashboard.php');
-    exit;
-}
-?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,93 +5,84 @@ if (!empty($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - SIGA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link rel="stylesheet" href="/styles.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
             margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
         }
         .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2.5rem;
             background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-        .login-container h2 {
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             text-align: center;
-            margin-bottom: 1.5rem;
-            color: #2c3e50;
+            animation: fadeIn 0.6s ease;
         }
-        .form-group {
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-logo {
+            width: 80px;
             margin-bottom: 1rem;
+            border-radius: 12px;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.4rem;
-            font-weight: bold;
-            color: #34495e;
+        h2 {
+            margin: 0 0 1.5rem 0;
+            color: #3a4f63;
+            font-size: 1.5rem;
         }
-        .form-group input {
+        .login-container input,
+        .login-container button {
             width: 100%;
-            padding: 0.6rem;
+            padding: 0.9rem;
+            margin: 0.6rem 0;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 1rem;
+            box-sizing: border-box;
         }
-        .btn-login {
-            width: 100%;
-            padding: 0.7rem;
-            background: #3498db;
+        .login-container button {
+            background: #0066cc;
             color: white;
             border: none;
-            border-radius: 4px;
-            font-size: 1rem;
+            font-weight: bold;
             cursor: pointer;
+            transition: background 0.3s;
         }
-        .btn-login:hover {
-            background: #2980b9;
+        .login-container button:hover {
+            background: #0055aa;
         }
         .error {
-            color: #e74c3c;
-            background: #fdf2f2;
+            background: #ffebee;
+            color: #c62828;
             padding: 0.7rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            border: 1px solid #fadbd8;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h2><i class="fas fa-lock"></i> Iniciar Sesión</h2>
-
-        <?php if (!empty($_SESSION['error_login'])): ?>
-            <div class="error">
-                <?= htmlspecialchars($_SESSION['error_login']) ?>
-            </div>
-            <?php unset($_SESSION['error_login']); ?>
-        <?php endif; ?>
-
-        <form method="POST" action="/auth.php">
-            <div class="form-group">
-                <label for="usuario">Usuario</label>
-                <input type="text" id="usuario" name="usuario" required autofocus>
-            </div>
-            <div class="form-group">
-                <label for="clave">Contraseña</label>
-                <input type="password" id="clave" name="clave" required>
-            </div>
-            <button type="submit" class="btn-login">
-                <i class="fas fa-sign-in-alt"></i> Entrar
-            </button>
-        </form>
-    </div>
+<div class="login-container">
+    <img src="/includes/logo.png" alt="Logo VTLG" class="login-logo" onerror="this.style.display='none'">
+    <h2><i class="fas fa-lock"></i> Acceso al Sistema</h2>
+    <?php if (isset($_GET['error'])): ?>
+        <div class="error">Usuario o contraseña incorrectos</div>
+    <?php endif; ?>
+    <form method="POST" action="/auth.php">
+        <input type="text" name="usuario" placeholder="Nombre de usuario" required />
+        <input type="password" name="password" placeholder="Contraseña" required />
+        <button type="submit">Ingresar</button>
+    </form>
+</div>
 </body>
 </html>
