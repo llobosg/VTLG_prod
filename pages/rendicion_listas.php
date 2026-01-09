@@ -7,31 +7,26 @@ $pdo = getDBConnection();
 try {
 
     $stmt = $pdo->prepare("
-        SELECT 
-            r.id_rms,
-            r.fecha_rms,
-            r.despacho_rms,
-            r.ref_clte_rms,
-            r.total_transferir_rms,
-            c.nombre_clt AS cliente,
-            m.mercancia_mrcc AS mercancia,
+    SELECT 
+        r.id_rms,
+        r.fecha_rms,
+        r.despacho_rms,
+        r.ref_clte_rms,
+        r.total_transferir_rms,
+        c.nombre_clt AS cliente_nombre,
+        m.mercancia_mrcc AS mercancia_nombre,
+        COALESCE(SUM(rend.monto_pago_rndcn), 0) AS total_cliente,
+        COALESCE(SUM(rend.monto_gastos_agencia_rndcn), 0) AS total_agencia
+    FROM remesa r
+    INNER JOIN rendicion rend ON r.id_rms = rend.id_rms
+    LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
+    LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+    GROUP BY r.id_rms
+    ORDER BY r.fecha_rms DESC
+");
+$stmt->execute();
+$remesas = $stmt->fetchAll();
 
-            SUM(
-                COALESCE(rd.monto_pago_rndcn,0) +
-                COALESCE(rd.monto_gastos_agencia_rndcn,0) +
-                COALESCE(rd.monto_iva_rndcn,0)
-            ) AS total_liquidacion
-
-        FROM rendicion rd
-        INNER JOIN remesa r ON r.id_rms = rd.id_rms
-        LEFT JOIN clientes c ON c.id_clt = r.cliente_rms
-        LEFT JOIN mercancias m ON m.id_mrcc = r.mercancia_rms
-
-        GROUP BY r.id_rms
-        ORDER BY r.fecha_rms DESC
-    ");
-    $stmt->execute();
-    $rendiciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (Throwable $e) {
     error_log('[RENDICION_LISTAS] ' . $e->getMessage());
