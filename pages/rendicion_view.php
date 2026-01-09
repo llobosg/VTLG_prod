@@ -8,46 +8,69 @@ if ($rol !== 'admin' && $rol !== 'comercial') {
     exit('Acceso denegado.');
 }
 
-// Parámetros
-$id_rms = $_GET['id'] ?? null;
-$cliente_data = null;
+/* =====================================================
+   PARÁMETRO CORREGIDO (id o seleccionar)
+===================================================== */
+$id_rms = $_GET['id'] ?? $_GET['seleccionar'] ?? null;
+
 $remesa_data = null;
 $conceptos_cliente = [];
 $conceptos_agencia = [];
 
-// Cargar datos solo en contexto web (no en CLI/build)
-if (php_sapi_name() !== 'cli' && $id_rms) {
+if (php_sapi_name() !== 'cli' && $id_rms && is_numeric($id_rms)) {
     try {
         $pdo = getDBConnection();
-        if ($pdo) {
-            // Cargar remesa + cliente
+
+        /* ===============================
+           CARGAR REMESA + CLIENTE
+        =============================== */
+        $stmt = $pdo->prepare("
+            SELECT 
+                r.*,
+                c.nombre_clt AS cliente_nombre,
+                c.rut_clt,
+                c.direccion_clt,
+                c.ciudad_clt,
+                m.mercancia_mrcc AS mercancia_nombre
+            FROM remesa r
+            LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
+            LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+            WHERE r.id_rms = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$id_rms]);
+        $remesa_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($remesa_data) {
+
+            /* ===============================
+               CONCEPTOS CLIENTE
+            =============================== */
             $stmt = $pdo->prepare("
-                SELECT 
-                    r.*,
-                    c.nombre_clt AS cliente_nombre,
-                    c.rut_clt,
-                    c.direccion_clt,
-                    c.ciudad_clt
-                FROM remesa r
-                LEFT JOIN clientes c ON r.id_clt_rms = c.id_clt
-                WHERE r.id_rms = ?
+                SELECT *
+                FROM rendicion
+                WHERE id_rms = ?
+                  AND tipo_concepto = 'cliente'
+                ORDER BY item_rendicion
             ");
             $stmt->execute([$id_rms]);
-            $remesa_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            $conceptos_cliente = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if ($remesa_data) {
-                // Cargar conceptos cliente
-                $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND tipo_concepto = 'cliente' ORDER BY id_rendicion");
-                $stmt->execute([$id_rms]);
-                $conceptos_cliente = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                // Cargar conceptos agencia
-                $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND tipo_concepto = 'agencia' ORDER BY id_rendicion");
-                $stmt->execute([$id_rms]);
-                $conceptos_agencia = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            }
+            /* ===============================
+               CONCEPTOS AGENCIA
+            =============================== */
+            $stmt = $pdo->prepare("
+                SELECT *
+                FROM rendicion
+                WHERE id_rms = ?
+                  AND tipo_concepto = 'agencia'
+                ORDER BY item_rendicion
+            ");
+            $stmt->execute([$id_rms]);
+            $conceptos_agencia = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-    } catch (Exception $e) {
+
+    } catch (Throwable $e) {
         error_log("Error al cargar rendición: " . $e->getMessage());
     }
 }
