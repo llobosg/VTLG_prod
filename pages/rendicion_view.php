@@ -426,6 +426,59 @@ else {
 let id_rms_actual = <?= isset($_GET['seleccionar']) ? (int)$_GET['seleccionar'] : 'null' ?>;
 let id_rendicion_a_eliminar = null;
 
+// === Cargar datos de un concepto ya existente (vía fetch a la BD) ===
+function cargarConceptoParaEdicion(id) {
+    fetch(`/pages/rendicion_logic.php?action=obtener&id=${id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.success === false) {
+                alert('❌ No se pudo cargar el concepto.');
+                return;
+            }
+
+            // Determinar tipo
+            const tipo = data.concepto_rndcn ? 'cliente' : 'agencia';
+            document.getElementById('id_rendicion_edicion').value = data.id_rndcn;
+            document.getElementById('id_rms_rendicion').value = data.id_rms;
+
+            // Ajustar UI por tipo
+            const grupoCliente = document.getElementById('grupo-cliente');
+            const grupoAgencia = document.getElementById('grupo-agencia');
+            const titulo = document.getElementById('submodal-titulo');
+            const btnTexto = document.getElementById('btn-texto');
+
+            if (tipo === 'cliente') {
+                document.querySelector('input[value="cliente"]').checked = true;
+                grupoCliente.style.display = 'block';
+                grupoAgencia.style.display = 'none';
+                titulo.innerText = 'Editar Concepto (Cliente)';
+                btnTexto.innerText = 'Actualizar Cliente';
+
+                document.getElementById('concepto_rndcn').value = data.concepto_rndcn || '';
+                document.getElementById('nro_documento_rndcn').value = data.nro_documento_rndcn || '';
+                document.getElementById('fecha_pago_rndcn').value = data.fecha_rndcn || '';
+                document.getElementById('monto_pago_rndcn').value = data.monto_pago_rndcn || '';
+            } else {
+                document.querySelector('input[value="agencia"]').checked = true;
+                grupoCliente.style.display = 'none';
+                grupoAgencia.style.display = 'block';
+                titulo.innerText = 'Editar Concepto (Agencia)';
+                btnTexto.innerText = 'Actualizar Agencia';
+
+                document.getElementById('concepto_agencia_rndcn').value = data.concepto_agencia_rndcn || '';
+                document.getElementById('nro_documento_rndcn_agencia').value = data.nro_documento_rndcn || '';
+                document.getElementById('fecha_pago_rndcn_agencia').value = data.fecha_rndcn || '';
+                document.getElementById('monto_gastos_agencia_rndcn').value = data.monto_gastos_agencia_rndcn || '';
+            }
+
+            document.getElementById('submodal-rendicion').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Error al cargar concepto:', err);
+            alert('❌ Error al cargar el concepto para edición.');
+        });
+}
+
 // === SUBMODAL: alternar grupos ===
 document.querySelectorAll('input[name="grupo"]').forEach(radio => {
     radio.addEventListener('change', function() {
@@ -442,6 +495,7 @@ document.querySelectorAll('input[name="grupo"]').forEach(radio => {
     });
 });
 
+// === Abrir submodal para NUEVO concepto ===
 function abrirSubmodalRendicion() {
     if (!id_rms_actual) {
         alert('Error: ID de remesa no disponible.');
@@ -457,6 +511,7 @@ function abrirSubmodalRendicion() {
     document.getElementById('submodal-rendicion').style.display = 'flex';
 }
 
+// === Limpiar solo campos del formulario (sin cerrar) ===
 function limpiarFormRendicion() {
     document.getElementById('concepto_rndcn').value = '';
     document.getElementById('nro_documento_rndcn').value = '';
@@ -469,19 +524,26 @@ function limpiarFormRendicion() {
     document.getElementById('monto_gastos_agencia_rndcn').value = '';
 }
 
+
+// === Cerrar submodal manualmente ===
 function cerrarSubmodalRendicion() {
     document.getElementById('submodal-rendicion').style.display = 'none';
 }
 
+// === Guardar o actualizar concepto ===
 function guardarRendicion() {
     const formData = new FormData();
     const id_rendicion = document.getElementById('id_rendicion_edicion').value;
     const id_rms = document.getElementById('id_rms_rendicion').value;
     const grupo = document.querySelector('input[name="grupo"]:checked').value;
 
-    formData.append('action', id_rendicion ? 'actualizar_rendicion' : 'crear_rendicion');
     formData.append('id_rms', id_rms);
-    if (id_rendicion) formData.append('id_rendicion', id_rendicion);
+    if (id_rendicion) {
+        formData.append('action', 'actualizar_rendicion');
+        formData.append('id_rndcn', id_rendicion);
+    } else {
+        formData.append('action', 'crear_rendicion');
+    }
 
     if (grupo === 'cliente') {
         const concepto = document.getElementById('concepto_rndcn').value.trim();
@@ -490,10 +552,10 @@ function guardarRendicion() {
             return;
         }
         formData.append('tipo_concepto', 'cliente');
-        formData.append('concepto_rndcn', concepto);
+        formData.append('concepto_rendicion', concepto);
         formData.append('nro_documento_rndcn', document.getElementById('nro_documento_rndcn').value || '');
-        formData.append('fecha_pago_rndcn', document.getElementById('fecha_pago_rndcn').value || '');
-        formData.append('monto_pago_rndcn', document.getElementById('monto_pago_rndcn').value || 0);
+        formData.append('fecha_rndcn', document.getElementById('fecha_pago_rndcn').value || '');
+        formData.append('monto_rendicion', document.getElementById('monto_pago_rndcn').value || 0);
     } else {
         const concepto = document.getElementById('concepto_agencia_rndcn').value.trim();
         if (!concepto) {
@@ -501,10 +563,10 @@ function guardarRendicion() {
             return;
         }
         formData.append('tipo_concepto', 'agencia');
-        formData.append('concepto_agencia_rndcn', concepto);
+        formData.append('concepto_rendicion', concepto);
         formData.append('nro_documento_rndcn', document.getElementById('nro_documento_rndcn_agencia').value || '');
-        formData.append('fecha_pago_rndcn', document.getElementById('fecha_pago_rndcn_agencia').value || '');
-        formData.append('monto_gastos_agencia_rndcn', document.getElementById('monto_gastos_agencia_rndcn').value || 0);
+        formData.append('fecha_rndcn', document.getElementById('fecha_pago_rndcn_agencia').value || '');
+        formData.append('monto_rendicion', document.getElementById('monto_gastos_agencia_rndcn').value || 0);
     }
 
     fetch('/pages/rendicion_logic.php', {
@@ -514,8 +576,9 @@ function guardarRendicion() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Concepto guardado.');
-            cerrarSubmodalRendicion();
+            alert('✅ Concepto guardado correctamente.');
+            // ✅ NO cerrar el submodal
+            // ✅ Recargar la tabla de conceptos
             window.location.reload();
         } else {
             alert('❌ ' + (data.message || 'Error al guardar.'));
@@ -527,11 +590,12 @@ function guardarRendicion() {
     });
 }
 
+// === Editar: ahora carga datos reales ===
 function editarRendicion(id, tipo) {
-    // En una versión futura, cargar datos vía API.
-    alert('Edición no implementada aún. Recargando para ver cambios.');
+    cargarConceptoParaEdicion(id);
 }
 
+// === Eliminar (sin cambios) ===
 function confirmarEliminar(id) {
     id_rendicion_a_eliminar = id;
     document.getElementById('modal-confirm').style.display = 'flex';
@@ -542,7 +606,7 @@ function confirmarEliminarAction() {
     
     const formData = new FormData();
     formData.append('action', 'eliminar_rendicion');
-    formData.append('id_rendicion', id_rendicion_a_eliminar);
+    formData.append('id_rndcn', id_rendicion_a_eliminar);
 
     fetch('/pages/rendicion_logic.php', {
         method: 'POST',
@@ -568,6 +632,22 @@ function confirmarEliminarAction() {
 function cerrarModal() {
     document.getElementById('modal-confirm').style.display = 'none';
 }
+
+// Alternar grupos (sin cambios)
+document.querySelectorAll('input[name="grupo"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.value === 'cliente') {
+            document.getElementById('grupo-cliente').style.display = 'block';
+            document.getElementById('grupo-agencia').style.display = 'none';
+            document.getElementById('submodal-titulo').innerText = 'Agregar Concepto (Cliente)';
+        } else {
+            document.getElementById('grupo-cliente').style.display = 'none';
+            document.getElementById('grupo-agencia').style.display = 'block';
+            document.getElementById('submodal-titulo').innerText = 'Agregar Concepto (Agencia)';
+        }
+        limpiarFormRendicion();
+    });
+});
 </script>
 </body>
 </html>
