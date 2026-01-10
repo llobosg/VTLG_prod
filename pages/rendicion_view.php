@@ -2,6 +2,11 @@
 require_once __DIR__ . '/../session_check.php';
 require_once __DIR__ . '/../config.php';
 
+// Evitar advertencias en producción
+if (php_sapi_name() !== 'cli') {
+    error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+}
+
 $rol = $_SESSION['rol'] ?? 'usuario';
 $remesas = [];
 $remesa_seleccionada = null;
@@ -229,13 +234,13 @@ else {
                                     <td>Cliente</td>
                                     <td><?= htmlspecialchars($c['concepto_rndcn'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($c['nro_documento_rndcn'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($c['fecha_pago_rndcn'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($c['fecha_rndcn'] ?? '') ?></td>
                                     <td><?= number_format($c['monto_pago_rndcn'] ?? 0, 0, ',', '.') ?></td>
                                     <td>
-                                        <a href="#" class="btn-edit" title="Editar" onclick="editarRendicion(<?= $c['id_rendicion'] ?>, 'cliente')">
+                                        <a href="#" class="btn-edit" title="Editar" onclick="editarRendicion(<?= (int)($c['id_rndcn'] ?? 0) ?>, 'cliente')">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(<?= $c['id_rendicion'] ?>)">
+                                        <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(<?= (int)($c['id_rndcn'] ?? 0) ?>)">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </td>
@@ -246,13 +251,13 @@ else {
                                     <td>Agencia</td>
                                     <td><?= htmlspecialchars($c['concepto_agencia_rndcn'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($c['nro_documento_rndcn'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($c['fecha_pago_rndcn'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($c['fecha_rndcn'] ?? '') ?></td>
                                     <td><?= number_format(($c['monto_gastos_agencia_rndcn'] ?? 0) * 1.19, 0, ',', '.') ?></td>
                                     <td>
-                                        <a href="#" class="btn-edit" title="Editar" onclick="editarRendicion(<?= $c['id_rendicion'] ?>, 'agencia')">
+                                        <a href="#" class="btn-edit" title="Editar" onclick="editarRendicion(<?= (int)($c['id_rndcn'] ?? 0) ?>, 'agencia')">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(<?= $c['id_rendicion'] ?>)">
+                                        <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(<?= (int)($c['id_rndcn'] ?? 0) ?>)">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </td>
