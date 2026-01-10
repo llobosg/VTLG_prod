@@ -8,17 +8,15 @@ if ($rol !== 'admin' && $rol !== 'comercial') {
     exit('Acceso denegado.');
 }
 
-// ✅ Inicializar SIEMPRE
 $rendiciones = [];
 
-// Cargar datos solo en contexto web
 if (php_sapi_name() !== 'cli') {
     try {
         $pdo = getDBConnection();
         if ($pdo) {
             $stmt = $pdo->prepare("
                 SELECT 
-                    r.id_rendicion,
+                    r.id_rndcn,                 -- ✅ CORREGIDO
                     r.id_rms,
                     r.monto_pago_rndcn,
                     r.monto_gastos_agencia_rndcn,
@@ -29,14 +27,14 @@ if (php_sapi_name() !== 'cli') {
                 FROM rendicion r
                 LEFT JOIN remesa rm ON r.id_rms = rm.id_rms
                 LEFT JOIN clientes c ON rm.cliente_rms = c.id_clt
-                ORDER BY r.fecha_rendicion DESC, r.id_rendicion DESC
+                ORDER BY r.fecha_rendicion DESC, r.id_rndcn DESC   -- ✅ también aquí
             ");
             $stmt->execute();
             $rendiciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } catch (Exception $e) {
         error_log("Error al cargar lista de rendiciones: " . $e->getMessage());
-        $rendiciones = []; // ✅ Asegura que sea array incluso en error
+        $rendiciones = [];
     }
 }
 ?>
@@ -79,7 +77,7 @@ if (php_sapi_name() !== 'cli') {
             <tbody>
                 <?php foreach ($rendiciones as $r): ?>
                 <tr>
-                    <td><?= (int)$r['id_rendicion'] ?></td>
+                    <td><?= (int)$r['id_rndcn'] ?></td> <!-- ✅ Usar id_rndcn -->
                     <td><?= (int)$r['id_rms'] ?></td>
                     <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
                     <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
@@ -90,7 +88,7 @@ if (php_sapi_name() !== 'cli') {
                         <a href="/pages/rendicion_view.php?seleccionar=<?= (int)$r['id_rms'] ?>" class="btn-primary" title="Ver Rendición">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rendicion'] ?>" target="_blank" class="btn-comment" title="PDF">
+                        <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rndcn'] ?>" target="_blank" class="btn-comment" title="PDF">
                             <i class="fas fa-file-pdf"></i>
                         </a>
                     </td>
