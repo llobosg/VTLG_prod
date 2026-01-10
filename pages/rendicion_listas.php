@@ -1,103 +1,110 @@
 <?php
-require_once __DIR__ . '/../session_check.php';
-require_once __DIR__ . '/../config.php';
+require_once '../session_check.php';
+require_once '../config.php';
 
-$pdo = getDBConnection();
+$rol = $_SESSION['rol'] ?? '';
+if ($rol !== 'admin' && $rol !== 'comercial') {
+    header('HTTP/1.1 403 Forbidden');
+    exit('Acceso denegado.');
+}
 
-try {
+// ✅ Inicializar SIEMPRE
+$rendiciones = [];
 
-    $stmt = $pdo->prepare("
-    SELECT 
-        r.id_rms,
-        r.fecha_rms,
-        r.despacho_rms,
-        r.ref_clte_rms,
-        r.total_transferir_rms,
-        c.nombre_clt AS cliente_nombre,
-        m.mercancia_mrcc AS mercancia_nombre,
-        COALESCE(SUM(rend.monto_pago_rndcn), 0) AS total_cliente,
-        COALESCE(SUM(rend.monto_gastos_agencia_rndcn), 0) AS total_agencia
-    FROM remesa r
-    INNER JOIN rendicion rend ON r.id_rms = rend.id_rms
-    LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-    LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-    GROUP BY r.id_rms
-    ORDER BY r.fecha_rms DESC
-");
-$stmt->execute();
-$remesas = $stmt->fetchAll();
-
-
-} catch (Throwable $e) {
-    error_log('[RENDICION_LISTAS] ' . $e->getMessage());
-    $rendiciones = [];
+// Cargar datos solo en contexto web
+if (php_sapi_name() !== 'cli') {
+    try {
+        $pdo = getDBConnection();
+        if ($pdo) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    r.id_rendicion,
+                    r.id_rms,
+                    r.monto_pago_rndcn,
+                    r.monto_gastos_agencia_rndcn,
+                    r.fecha_rendicion,
+                    rm.ref_clte_rms,
+                    rm.fecha_rms,
+                    c.nombre_clt AS cliente_nombre
+                FROM rendicion r
+                LEFT JOIN remesa rm ON r.id_rms = rm.id_rms
+                LEFT JOIN clientes c ON rm.cliente_rms = c.id_clt
+                ORDER BY r.fecha_rendicion DESC, r.id_rendicion DESC
+            ");
+            $stmt->execute();
+            $rendiciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } catch (Exception $e) {
+        error_log("Error al cargar lista de rendiciones: " . $e->getMessage());
+        $rendiciones = []; // ✅ Asegura que sea array incluso en error
+    }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Rendición de Gastos</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de Rendiciones - SIGA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<?php include '../includes/header.php'; ?>
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+        <h2 style="font-weight: bold;">
+            <i class="fas fa-file-invoice"></i> Lista de Rendiciones de Gasto
+        </h2>
+        <a href="/pages/remesa_lista.php" class="btn-secondary" style="text-decoration: none; padding: 0.4rem 0.8rem;">
+            <i class="fas fa-arrow-left"></i> Volver a Remesas
+        </a>
+    </div>
 
-<h1>Rendición de Gastos</h1>
-
-<div class="toolbar">
-    <a href="/pages/rendicion_view.php?modo=insert" class="btn-primary">
-        ➕ Agregar Rendición
-    </a>
-</div>
-
-<table class="tabla">
-    <thead>
-        <tr>
-            <th>Cliente</th>
-            <th>Despacho</th>
-            <th>Ref. Cliente</th>
-            <th>Mercancía</th>
-            <th>Fondos Transferidos</th>
-            <th>Total Liquidación</th>
-            <th>Saldo</th>
-            <th>Acción</th>
-        </tr>
-    </thead>
-    <tbody>
-
-    <?php if (!$rendiciones): ?>
-        <tr>
-            <td colspan="8">No hay rendiciones registradas</td>
-        </tr>
+    <?php if (!empty($rendiciones)): ?>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Remesa</th>
+                    <th>Cliente</th>
+                    <th>Ref. Clte</th>
+                    <th>Fecha Rend.</th>
+                    <th>Monto Cliente</th>
+                    <th>Monto Agencia</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($rendiciones as $r): ?>
+                <tr>
+                    <td><?= (int)$r['id_rendicion'] ?></td>
+                    <td><?= (int)$r['id_rms'] ?></td>
+                    <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
+                    <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
+                    <td><?= htmlspecialchars($r['fecha_rendicion'] ?? '–') ?></td>
+                    <td><?= isset($r['monto_pago_rndcn']) ? number_format($r['monto_pago_rndcn'], 0, ',', '.') : '–' ?></td>
+                    <td><?= isset($r['monto_gastos_agencia_rndcn']) ? number_format($r['monto_gastos_agencia_rndcn'], 0, ',', '.') : '–' ?></td>
+                    <td>
+                        <a href="/pages/rendicion_view.php?seleccionar=<?= (int)$r['id_rms'] ?>" class="btn-primary" title="Ver Rendición">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rendicion'] ?>" target="_blank" class="btn-comment" title="PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <i class="fas fa-file-invoice" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+            <p>No hay rendiciones de gasto registradas.</p>
+        </div>
     <?php endif; ?>
-
-    <?php foreach ($rendiciones as $r): 
-        $total = (float)$r['total_liquidacion'];
-        $fondos = (float)$r['total_transferir_rms'];
-        $saldo = $fondos - $total;
-    ?>
-        <tr>
-            <td><?= htmlspecialchars($r['cliente']) ?></td>
-            <td><?= htmlspecialchars($r['despacho_rms']) ?></td>
-            <td><?= htmlspecialchars($r['ref_clte_rms']) ?></td>
-            <td><?= htmlspecialchars($r['mercancia']) ?></td>
-            <td>$<?= number_format($fondos,0,',','.') ?></td>
-            <td>$<?= number_format($total,0,',','.') ?></td>
-            <td class="<?= $saldo < 0 ? 'negativo' : 'positivo' ?>">
-                $<?= number_format($saldo,0,',','.') ?>
-            </td>
-            <td>
-                <a href="/pages/rendicion_view.php?modo=edit&id_rms=<?= (int)$r['id_rms'] ?>"
-                   class="btn-secondary">
-                    ✏️ Editar
-                </a>
-            </td>
-        </tr>
-    <?php endforeach; ?>
-
-    </tbody>
-</table>
-
+</div>
 </body>
 </html>
