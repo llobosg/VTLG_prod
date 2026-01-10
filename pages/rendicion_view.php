@@ -65,13 +65,13 @@ else {
             $remesa_seleccionada = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($remesa_seleccionada) {
-                // Cargar conceptos cliente
-                $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND tipo_concepto = 'cliente' ORDER BY id_rendicion");
+                // Cargar conceptos cliente (donde concepto_rndcn NO es NULL)
+                $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND concepto_rndcn IS NOT NULL ORDER BY id_rndcn");
                 $stmt->execute([$id_rms]);
                 $conceptos_cliente = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                // Cargar conceptos agencia
-                $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND tipo_concepto = 'agencia' ORDER BY id_rendicion");
+                // Cargar conceptos agencia (donde concepto_agencia_rndcn NO es NULL)
+                $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND concepto_agencia_rndcn IS NOT NULL ORDER BY id_rndcn");
                 $stmt->execute([$id_rms]);
                 $conceptos_agencia = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
