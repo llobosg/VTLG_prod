@@ -8,33 +8,39 @@ if ($rol !== 'admin' && $rol !== 'comercial') {
     exit('Acceso denegado.');
 }
 
-$rendiciones = [];
+$remesas = [];
 
 if (php_sapi_name() !== 'cli') {
     try {
         $pdo = getDBConnection();
         if ($pdo) {
             $stmt = $pdo->prepare("
-                SELECT 
-                    r.id_rndcn,                 -- ✅ CORREGIDO
+                SELECT
                     r.id_rms,
-                    r.monto_pago_rndcn,
-                    r.monto_gastos_agencia_rndcn,
-                    r.fecha_rendicion,
-                    rm.ref_clte_rms,
-                    rm.fecha_rms,
-                    c.nombre_clt AS cliente_nombre
-                FROM rendicion r
-                LEFT JOIN remesa rm ON r.id_rms = rm.id_rms
-                LEFT JOIN clientes c ON rm.cliente_rms = c.id_clt
-                ORDER BY r.fecha_rendicion DESC, r.id_rndcn DESC   -- ✅ también aquí
+                    r.fecha_rms,
+                    r.despacho_rms,
+                    r.ref_clte_rms,
+                    r.total_transferir_rms,
+                    r.estado_rms,
+                    c.nombre_clt AS cliente_nombre,
+                    m.mercancia_mrcc AS mercancia_nombre,
+                    COALESCE(SUM(rend.monto_pago_rndcn), 0) AS total_cliente,
+                    COALESCE(SUM(rend.monto_gastos_agencia_rndcn), 0) AS total_agencia
+                FROM remesa r
+                LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
+                LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+                LEFT JOIN rendicion rend ON r.id_rms = rend.id_rms
+                WHERE r.estado_rms = 'solicitada'
+                GROUP BY r.id_rms
+                HAVING COUNT(rend.id_rndcn) > 0
+                ORDER BY r.fecha_rms DESC
             ");
             $stmt->execute();
-            $rendiciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $remesas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } catch (Exception $e) {
         error_log("Error al cargar lista de rendiciones: " . $e->getMessage());
-        $rendiciones = [];
+        $remesas = [];
     }
 }
 ?>
@@ -43,7 +49,7 @@ if (php_sapi_name() !== 'cli') {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lista de Rendiciones - SIGA</title>
+    <title>Rendición de Gastos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
 </head>
@@ -51,58 +57,68 @@ if (php_sapi_name() !== 'cli') {
 <?php include '../includes/header.php'; ?>
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
-        <h2 style="font-weight: bold;">
-            <i class="fas fa-file-invoice"></i> Lista de Rendiciones de Gasto
+        <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-receipt"></i> Rendición de Gastos
         </h2>
-        <a href="/pages/remesa_lista.php" class="btn-secondary" style="text-decoration: none; padding: 0.4rem 0.8rem;">
-            <i class="fas fa-arrow-left"></i> Volver a Remesas
-        </a>
+        <!-- Botón eliminado porque no aplica en listado -->
     </div>
 
-    <?php if (!empty($rendiciones)): ?>
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Remesa</th>
-                    <th>Cliente</th>
-                    <th>Ref. Clte</th>
-                    <th>Fecha Rend.</th>
-                    <th>Monto Cliente</th>
-                    <th>Monto Agencia</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($rendiciones as $r): ?>
-                <tr>
-                    <td><?= (int)$r['id_rndcn'] ?></td> <!-- ✅ Usar id_rndcn -->
-                    <td><?= (int)$r['id_rms'] ?></td>
-                    <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
-                    <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
-                    <td><?= htmlspecialchars($r['fecha_rendicion'] ?? '–') ?></td>
-                    <td><?= isset($r['monto_pago_rndcn']) ? number_format($r['monto_pago_rndcn'], 0, ',', '.') : '–' ?></td>
-                    <td><?= isset($r['monto_gastos_agencia_rndcn']) ? number_format($r['monto_gastos_agencia_rndcn'], 0, ',', '.') : '–' ?></td>
-                    <td>
-                        <a href="/pages/rendicion_view.php?seleccionar=<?= (int)$r['id_rms'] ?>" class="btn-primary" title="Ver Rendición">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rndcn'] ?>" target="_blank" class="btn-comment" title="PDF">
-                            <i class="fas fa-file-pdf"></i>
-                        </a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-    <?php else: ?>
-        <div class="card" style="text-align: center; padding: 2rem;">
-            <i class="fas fa-file-invoice" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
-            <p>No hay rendiciones de gasto registradas.</p>
+    <div class="card">
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Despacho</th>
+                        <th>Ref.Clte.</th>
+                        <th>Mercancía</th>
+                        <th>Fondos Transferidos</th>
+                        <th>Total Liquidación</th>
+                        <th>Saldo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($remesas)): ?>
+                    <tr>
+                        <td colspan="8" style="text-align: center;">No hay rendiciones registradas.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($remesas as $r):
+                        $totalCliente = (float)$r['total_cliente'];
+                        $totalAgencia = (float)$r['total_agencia'];
+                        $netoAgencia = $totalAgencia;
+                        $ivaAgencia = $netoAgencia * 0.19;
+                        $totalGastosAgencia = $netoAgencia + $ivaAgencia;
+                        $totalLiquidacion = $totalCliente + $totalGastosAgencia;
+                        $saldo = (float)$r['total_transferir_rms'] - $totalLiquidacion;
+                    ?>
+                    <tr>
+                        <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['despacho_rms'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['mercancia_nombre'] ?? '–') ?></td>
+                        <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
+                        <td><?= number_format($totalLiquidacion, 0, ',', '.') ?></td>
+                        <td style="color: <?= $saldo > 0 ? '#2980b9' : '#e74c3c' ?>;">
+                            <?= number_format(abs($saldo), 0, ',', '.') ?>
+                            <?= $saldo > 0 ? ' (cliente)' : ' (agencia)' ?>
+                        </td>
+                        <td>
+                            <a href="/pages/rendicion_view.php?seleccionar=<?= $r['id_rms'] ?>" class="btn-primary" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="/pages/generar_pdf_rendicion.php?id=<?= $r['id_rms'] ?>" target="_blank" class="btn-comment" title="PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
         </div>
-    <?php endif; ?>
+    </div>
 </div>
 </body>
 </html>
