@@ -36,7 +36,7 @@ $stmt = $pdo->query("
 $remesas = $stmt->fetchAll();
 
 // Opciones estáticas
-$estados = ['confección', 'solicitada', 'transferencia OK', 'Por rendir', 'Rendida', 'Nota Cobranza enviada', 'Nota Cobranza pagada', 'Cerrada OK', 'Cerrada con observaciones'];
+$estados = ['confección', 'solicitada', 'transferencia OK', 'Rendida', 'Nota Cobranza enviada', 'Nota Cobranza pagada', 'Cerrada OK', 'Cerrada con observaciones'];
 $tramites = [
     'imp. ctdo anticip', 'imp. ctdo normal', 'exp. Normal', 'exp. sin valor comercial',
     'exp. Servicios', 'Reexportacion', 'Salida temporal', 'Reingreso',
