@@ -28,6 +28,7 @@ if (isset($_GET['seleccionar'])) {
                 SELECT 
                     r.*,
                     c.nombre_clt AS cliente_nombre,
+                    c.rut_clt,
                     c.id_clt AS id_clt_rms,
                     m.mercancia_mrcc AS mercancia_nombre
                 FROM remesa r
@@ -120,6 +121,15 @@ if (isset($_GET['seleccionar'])) {
                 <a href="/pages/rendicion_view.php" class="btn-secondary" style="margin-top: 1rem;">Seleccionar otra remesa</a>
             </div>
         <?php else: ?>
+            <!-- === TÍTULO + CERRAR === -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+                <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-receipt"></i> Rendición de Gastos
+                </h2>
+                <a href="/pages/rendicion_listas.php" class="btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 1.2rem; text-decoration: none;">
+                    &times;
+                </a>
+            </div>
             <!-- Ficha de Remesa -->
             <div id="ficha-remesa" class="card" style="margin-bottom: 1.5rem;">
                 <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
