@@ -638,7 +638,7 @@ function editarRendicion(id, tipo) {
         .then(res => res.json())
         .then(data => {
             if (!data || data.success === false) {
-                alert('❌ No se pudo cargar el concepto.');
+                mostrarNotificacion('❌ No se puedo cargar el concepto para edición.', 'error');
                 return;
             }
 
@@ -673,7 +673,7 @@ function editarRendicion(id, tipo) {
         })
         .catch(err => {
             console.error('Error al cargar concepto:', err);
-            alert('❌ Error al cargar el concepto para edición.');
+            mostrarNotificacion('❌ Error al cargar el concepto para edición.', 'error');
         });
 }
 
@@ -720,7 +720,7 @@ function guardarRendicion() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert('✅ Concepto guardado correctamente.');
+                mostrarNotificacion('✅ Concepto guardado correctamente.', 'success');
                 if (!id_rendicion) {
                     limpiarFormRendicion();
                 }
@@ -729,12 +729,12 @@ function guardarRendicion() {
                     cargarRendiciones(id_rms_actual);
                 }
             } else {
-                alert('❌ ' + (data.message || 'Error al guardar.'));
+                mostrarNotificacion('❌ ' + (data.message || 'Error al guardar.'), 'error');
             }
         })
         .catch(err => {
             console.error('Error:', err);
-            alert('❌ Error de conexión.');
+            mostrarNotificacion('❌ ' + (data.message || 'Error de conexión.'), 'error');
         });
 }
 
@@ -760,13 +760,13 @@ function confirmarEliminarAction() {
                     cargarRendiciones(id_rms_actual);
                 }
             } else {
-                alert('❌ ' + (data.message || 'Error al eliminar.'));
+                mostrarNotificacion('❌ ' + (data.message || 'Error al Eliminar'), 'error');
             }
         })
         .catch(err => {
             cerrarModal();
             console.error('Error:', err);
-            alert('❌ Error de conexión.');
+            mostrarNotificacion('❌ Error de conexión.', 'error');
         });
 }
 
