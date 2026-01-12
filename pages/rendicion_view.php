@@ -801,6 +801,59 @@ document.getElementById('busqueda-inteligente').addEventListener('input', functi
         document.getElementById('resultados-busqueda').style.display = 'none';
     }
 });
+
+// === NOTIFICACIÓN ESTILO CRM_ELOG ===
+function mostrarNotificacion(mensaje, tipo = 'success') {
+    let contenedor = document.getElementById('notificaciones-container');
+    if (!contenedor) {
+        contenedor = document.createElement('div');
+        contenedor.id = 'notificaciones-container';
+        contenedor.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        document.body.appendChild(contenedor);
+    }
+
+    const notif = document.createElement('div');
+    notif.innerText = mensaje;
+    notif.style.cssText = `
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+        ${tipo === 'success' ? 'background: #27ae60;' : 'background: #e74c3c;'}
+    `;
+
+    // Añadir estilos de animación si no existen
+    if (!document.getElementById('notificaciones-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notificaciones-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    contenedor.appendChild(notif);
+    setTimeout(() => {
+        if (notif.parentNode) notif.parentNode.removeChild(notif);
+    }, 3000);
+}
 </script>
 </body>
 </html>

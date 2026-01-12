@@ -128,7 +128,9 @@ $html = '
     <!-- === SECCIÓN SUPERIOR (CABECERA + 4x4) === -->
     <div class="section-box">
         <div style="margin-bottom: 10px;">
-            <div style="font-weight: bold; font-size: 16px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
+            <div style="font-weight: bold; font-size: 8px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
+            <div></div>
+            <div></div>
             <h2>SOLICITUD DE REMESA</h2>
             <table style="margin-top: 8px;">
                 <tr>
