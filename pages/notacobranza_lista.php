@@ -47,7 +47,7 @@ if (php_sapi_name() !== 'cli') {
 <body>
 <?php include '../includes/header.php'; ?>
 <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
         <h2 style="font-weight: bold;">
             <i class="fas fa-file-invoice-dollar"></i> Notas de Cobranza
         </h2>
