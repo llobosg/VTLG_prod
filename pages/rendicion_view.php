@@ -123,22 +123,25 @@ if (isset($_GET['seleccionar'])) {
             <!-- Ficha de Remesa -->
             <div id="ficha-remesa" class="card" style="margin-bottom: 1.5rem;">
                 <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
+                    <!-- Fila1 -->
                     <div><strong>CLIENTE:</strong></div>
                     <div class="valor-ficha" id="cliente_ficha" style="grid-column: span 3;"><?= htmlspecialchars($remesa_seleccionada['cliente_nombre'] ?? '') ?></div>
                     <div><strong>Rut:</strong></div>
                     <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['rut_clt'] ?? '') ?></div>
                     <div><strong>FECHA:</strong></div>
                     <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['fecha_rms'] ?? '') ?></div>
-
+                    <!-- Fila2 -->
+                    <div><strong>REF.CLTE.:</strong></div>
+                    <div class="valor-ficha" style="grid-column: span 3;"><?= htmlspecialchars($remesa_seleccionada['ref_clte_rms'] ?? '') ?></div>
                     <div><strong>DESPACHO:</strong></div>
                     <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['despacho_rms'] ?? '') ?></div>
-                    <div><strong>REF.CLTE.:</strong></div>
-                    <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['ref_clte_rms'] ?? '') ?></div>
+                    <div><strong>TOTAL REMESA:</strong></div>
+                    <div class="valor-ficha"><?= number_format($remesa_seleccionada['total_transferir_rms'] ?? 0, 0, ',', '.') ?></div>
+                    <!-- Fila2 -->
                     <div><strong>MERCANCÍA:</strong></div>
                     <div class="valor-ficha" style="grid-column: span 2;"><?= htmlspecialchars($remesa_seleccionada['mercancia_nombre'] ?? '') ?></div>
 
-                    <div><strong>TOTAL TRANSFERIDO:</strong></div>
-                    <div class="valor-ficha"><?= number_format($remesa_seleccionada['total_transferir_rms'] ?? 0, 0, ',', '.') ?></div>
+                    
                 </div>
             </div>
 
@@ -218,31 +221,37 @@ if (isset($_GET['seleccionar'])) {
                     $saldo = (float)($remesa_seleccionada['total_transferir_rms'] ?? 0) - $totalRendicion;
                     $aFavor = $saldo > 0 ? 'cliente' : ($saldo < 0 ? 'agencia' : 'OK');
                     ?>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-weight: bold; font-size: 0.95rem;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>TOTAL CLIENTE:</span>
-                            <span style="color: #2c3e50;"><?= number_format($totalCliente, 0, ',', '.') ?></span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>NETO AGENCIA:</span>
-                            <span style="color: #2c3e50;"><?= number_format($totalAgencia, 0, ',', '.') ?></span>
-                        </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center; font-weight: bold;">
+                        <!-- Fila 1 -->
                         <div></div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>IVA 19%:</span>
-                            <span style="color: #2c3e50;"><?= number_format($ivaAgencia, 0, ',', '.') ?></span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>SALDO:</span>
-                            <span style="color: <?= $saldo > 0 ? '#27ae60' : ($saldo < 0 ? '#e74c3c' : '#3498db') ?>;">
-                                <?= number_format(abs($saldo), 0, ',', '.') ?>
-                                <?= $aFavor !== 'OK' ? "({$aFavor})" : '' ?>
-                            </span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>TOTAL GASTOS AGENCIA:</span>
-                            <span style="color: #2c3e50;"><?= number_format($totalGastosAgencia, 0, ',', '.') ?></span>
-                        </div>
+                        <div><label style="margin: 0;">Total Clte.:</label></div>
+                        <div style="color: #2c3e50;"><?= number_format($totalCliente, 0, ',', '.') ?></div>
+                        <div></div>
+                        <div></div>
+                        <div><label style="margin: 0;">Neto:</label></div>
+                        <div style="color: #2c3e50;"><?= number_format($totalAgencia, 0, ',', '.') ?></div>
+                        <div></div>
+
+                        <!-- Fila 2 -->
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div><label style="margin: 0;">Iva:</label></div>
+                        <div style="color: #2c3e50;"><?= number_format($ivaAgencia, 0, ',', '.') ?></div>
+                        <div></div>
+
+                        <!-- Fila 3 -->
+                        <div></div>
+                        <div><label style="margin: 0;">Total Liquidación:</label></div>
+                        <div style="color: #2c3e50;"><?= number_format($totalRendicion, 0, ',', '.') ?></div>
+                        <div></div>
+                        <div></div>
+                        <div><label style="margin: 0;">Total Agencia:</label></div>
+                        <div style="color: #2c3e50;"><?= number_format($totalGastosAgencia, 0, ',', '.') ?></div>
+                        <div></div>
                     </div>
                 </div>
             </div>
