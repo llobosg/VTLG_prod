@@ -30,7 +30,7 @@ if (php_sapi_name() !== 'cli') {
                 LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
                 LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
                 LEFT JOIN rendicion rend ON r.id_rms = rend.id_rms
-                WHERE r.estado_rms = 'solicitada'
+                WHERE r.estado_rms IN ('Confeccion', 'solicitada', 'transferencia OK', 'Rendida')
                 GROUP BY r.id_rms
                 HAVING COUNT(rend.id_rndcn) > 0
                 ORDER BY r.fecha_rms DESC
@@ -56,12 +56,10 @@ if (php_sapi_name() !== 'cli') {
 <body>
 <?php include '../includes/header.php'; ?>
 <div class="container">
-    <!-- ✅ Título + botón alineado como en remesa_view.php -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
         <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
             <i class="fas fa-receipt"></i> Rendición de Gastos
         </h2>
-        <!-- ✅ Botón idéntico al de remesa_view.php -->
         <a href="/pages/rendicion_view.php" class="btn-primary" style="text-decoration: none; padding: 0.4rem 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
             <i class="fas fa-plus"></i> Agregar Rendición
         </a>
