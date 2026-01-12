@@ -772,6 +772,16 @@ function generarPDFRendicion() {
     }
     window.open(`/pages/generar_pdf_rendicion.php?id=${id_rms_actual}`, '_blank');
 }
+
+// === Activar búsqueda al escribir (manteniendo tu función existente) ===
+document.getElementById('busqueda-inteligente').addEventListener('input', function() {
+    const term = this.value.trim();
+    if (term.length >= 2) {
+        buscarRemesa();
+    } else {
+        document.getElementById('resultados-busqueda').style.display = 'none';
+    }
+});
 </script>
 </body>
 </html>
