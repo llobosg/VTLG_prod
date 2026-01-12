@@ -48,7 +48,7 @@ if (php_sapi_name() !== 'cli') {
                         c.direccion_clt,
                         c.ciudad_clt
                     FROM remesa r
-                    LEFT JOIN clientes c ON r.id_clt_rms = c.id_clt
+                    LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
                     WHERE r.id_rms = ?
                 ");
                 $stmt->execute([$cabecera['id_rms_nc']]);
@@ -126,7 +126,7 @@ if (php_sapi_name() !== 'cli') {
     </div>
     <?php endif; ?>
 
-    <!-- Ficha de Nota de Cobranza -->
+    <!-- Ficha de Nota de Cobranza (layout exacto solicitado) -->
     <div id="ficha-remesa" style="display: <?= $id_cabecera ? 'block' : 'none' ?>;" class="card" style="margin-bottom: 1.5rem;">
         <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
             <!-- Fila 1 -->
@@ -154,9 +154,10 @@ if (php_sapi_name() !== 'cli') {
             <div class="valor-ficha"><?= htmlspecialchars($nro_nc) ?></div>
             <div><strong>FECHA VCTO.:</strong></div>
             <div class="valor-ficha"><?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?></div>
+
             <!-- Fila 4 -->
             <div><strong>CONCEPTO:</strong></div>
-            <div class="valor-ficha" style="grid-column: span 5;">
+            <div class="valor-ficha" style="grid-column: span 4;">
                 <input type="text" 
                     id="concepto_nc_input" 
                     value="<?= htmlspecialchars($concepto_nc) ?>" 
@@ -165,6 +166,7 @@ if (php_sapi_name() !== 'cli') {
             </div>
             <div><strong>TOTAL REMESA:</strong></div>
             <div class="valor-ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
+
             <!-- Fila 5 -->
             <div></div>
             <div></div>
@@ -174,6 +176,7 @@ if (php_sapi_name() !== 'cli') {
             <div></div>
             <div><strong>TOTAL RENDICIÓN:</strong></div>
             <div class="valor-ficha" id="total_rendido_ficha">0</div>
+
             <!-- Fila 6 -->
             <div><strong>A FAVOR DE:</strong></div>
             <div class="valor-ficha" id="afavor_ficha">OK</div>
@@ -188,7 +191,7 @@ if (php_sapi_name() !== 'cli') {
             <div style="grid-column: span 8; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
                 <?php if ($id_cabecera): ?>
                     <button class="btn-primary" onclick="abrirSubmodalNC()" style="padding: 0.4rem 0.8rem;">
-                        <i class="fas fa-plus"></i> Agregar Concepto
+                        <i class="fas fa-plus"></i> Agregar ítem NC
                     </button>
                 <?php endif; ?>
             </div>
@@ -200,8 +203,9 @@ if (php_sapi_name() !== 'cli') {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h3 style="margin: 0; font-size: 1.1rem; font-weight: bold;">Conceptos de Nota Cobranza</h3>
             <div style="display: flex; gap: 0.8rem;">
+                <!-- Botón ya movido a la ficha (fila 7), se mantiene aquí solo por compatibilidad visual -->
                 <button class="btn-primary" id="btn-agregar" onclick="abrirSubmodalNC()" style="display: <?= $id_cabecera ? 'inline-flex' : 'none' ?>; padding: 0.4rem 0.8rem;">
-                    <i class="fas fa-plus"></i> Agregar Concepto
+                    <i class="fas fa-plus"></i> Agregar ítem NC
                 </button>
             </div>
         </div>
@@ -394,10 +398,10 @@ function cargarDetallesNC(id_cabecera) {
                             <td>${iva.toLocaleString('es-CL')}</td>
                             <td>${monto.toLocaleString('es-CL')}</td>
                             <td>
-                                <a href="#" class="btn-edit" title="Editar" onclick="editarDetalle(${d.id_detalle})">
+                                <a href="#" class="btn-edit" title="Editar" onclick="editarDetalle(${d.id_detalle}); return false;">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(${d.id_detalle})">
+                                <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(${d.id_detalle}); return false;">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
                             </td>
@@ -425,11 +429,6 @@ function cargarTotalRendiciones(id_rms, total_transferir) {
             const saldo = total_transferir - totalRendido;
             const aFavor = saldo < 0 ? 'agencia' : (saldo > 0 ? 'cliente' : 'OK');
 
-            console.log('Debug - total_transferir:', total_transferir);
-            console.log('Debug - totalRendido:', totalRendido);
-            console.log('Debug - saldo:', saldo);
-            console.log('Debug - aFavor:', aFavor);
-
             setTextContent('total_rendido_ficha', totalRendido.toLocaleString('es-CL'));
             setTextContent('saldo_ficha', Math.abs(saldo).toLocaleString('es-CL'));
             setTextContent('afavor_ficha', aFavor);
@@ -451,15 +450,54 @@ function setTextContent(id, text) {
     }
 }
 
+function abrirSubmodalNC() {
+    if (!id_cabecera_actual) {
+        alert('Error: No hay nota de cobranza activa.');
+        return;
+    }
+    document.getElementById('id_cabecera').value = id_cabecera_actual;
+    document.getElementById('id_detalle').value = '';
+    // Limpiar campos
+    document.getElementById('item_nc').value = '';
+    document.getElementById('proveedor_nc').value = '';
+    document.getElementById('nro_doc_nc').value = '';
+    document.getElementById('montoneto_nc').value = '';
+    document.getElementById('montoiva_nc').value = '';
+    document.getElementById('monto_nc').value = '';
+    document.getElementById('submodal-nc').style.display = 'flex';
+}
+
+function cerrarSubmodalNC() {
+    document.getElementById('submodal-nc').style.display = 'none';
+}
+
 // === CARGAR DATOS INICIALES ===
 <?php if ($id_cabecera): ?>
 cargarTotalRendiciones(id_rms_actual, total_transferir_valor);
 cargarDetallesNC(id_cabecera_actual);
 <?php endif; ?>
 
-// === Resto de funciones (abrirSubmodalNC, guardarConceptoNC, etc.) ===
-// ... (implementadas en entregas anteriores y funcionales)
-// Se mantienen intactas ya que ya están corregidas.
+// === FUNCIONES DE ACCIÓN (placeholder, implementar según lógica existente) ===
+function editarDetalle(id) {
+    alert('Edición de ítem NC no implementada aún.');
+}
+function confirmarEliminar(id) {
+    id_detalle_a_eliminar = id;
+    document.getElementById('modal-confirm').style.display = 'flex';
+}
+function confirmarEliminarAction() {
+    // Implementar lógica de eliminación
+    cerrarModal();
+    alert('Eliminación de ítem NC no implementada aún.');
+}
+function cerrarModal() {
+    document.getElementById('modal-confirm').style.display = 'none';
+}
+function generarPDFNotacobranza() {
+    if (id_cabecera_actual) {
+        window.open(`/pages/generar_pdf_notacobranza.php?id=${id_cabecera_actual}`, '_blank');
+    }
+}
 </script>
 </body>
 </html>
