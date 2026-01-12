@@ -8,17 +8,17 @@ if (php_sapi_name() === 'cli') {
 
 $pdo = getDBConnection();
 
-// === 1. Totales por estado ===
+// === 1. Montos acumulados por estado ===
 $estados_validos = [
     'confección', 'solicitada', 'transferencia OK', 'Rendida',
     'Nota Cobranza enviada', 'Nota Cobranza pagada', 'Cerrada OK', 'Cerrada con observaciones'
 ];
 
-$totales_estado = [];
+$montos_por_estado = [];
 foreach ($estados_validos as $estado) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM remesa WHERE estado_rms = ?");
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_transferir_rms), 0) FROM remesa WHERE estado_rms = ?");
     $stmt->execute([$estado]);
-    $totales_estado[$estado] = (int)$stmt->fetchColumn();
+    $montos_por_estado[$estado] = (float)$stmt->fetchColumn();
 }
 
 // === 2. Totales financieros ===
@@ -274,31 +274,48 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// === GRÁFICO DE BARRAS ===
+<script>
+// === GRÁFICO DE BARRAS: MONTOS POR ESTADO ===
 const ctx = document.getElementById('estadoChart').getContext('2d');
 new Chart(ctx, {
     type: 'bar',
     data: {
         labels: <?= json_encode(array_values($estados_validos)) ?>,
         datasets: [{
-            label: 'Cantidad de Remesas',
-            data: <?= json_encode(array_values($totales_estado)) ?>,
+            label: 'Monto Total ($)',
+            data: <?= json_encode(array_values($montos_por_estado)) ?>,
             backgroundColor: [
                 '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
                 '#9b59b6', '#1abc9c', '#d35400', '#2c3e50'
-            ]
+            ],
+            borderWidth: 0
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { display: false }
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return '$' + context.parsed.y.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    }
+                }
+            }
         },
         scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#333' }
+            },
             y: {
-                beginAtZero: true,
-                ticks: { precision: 0 }
+                grid: { display: false },
+                ticks: { 
+                    display: false,
+                    precision: 0
+                },
+                beginAtZero: true
             }
         }
     }
