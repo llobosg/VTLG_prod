@@ -36,7 +36,7 @@ $stmt = $pdo->query("
 $remesas = $stmt->fetchAll();
 
 // Opciones estáticas
-$estados = ['confección', 'solicitada', 'transferencia OK', 'Rendición Despacho'];
+$estados = ['confección', 'solicitada', 'transferencia OK', 'Por rendir', 'Rendida', 'Nota Cobranza enviada', 'Nota Cobranza pagada', 'Cerrada OK', 'Cerrada con observaciones'];
 $tramites = [
     'imp. ctdo anticip', 'imp. ctdo normal', 'exp. Normal', 'exp. sin valor comercial',
     'exp. Servicios', 'Reexportacion', 'Salida temporal', 'Reingreso',
@@ -499,7 +499,7 @@ function limpiarFormRemesa() {
         if (el) el.value = value;
     };
 
-    setDefault('estado_rms', 'Confeccion');
+    setDefault('estado_rms', 'confección');
     setDefault('tipo_rms', 'importación');
     setDefault('id_rms', '');
 
