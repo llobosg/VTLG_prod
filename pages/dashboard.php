@@ -15,10 +15,17 @@ $estados_validos = [
 ];
 
 $montos_por_estado = [];
+$total_registros_estado = [];
 foreach ($estados_validos as $estado) {
+    // Monto total transferido
     $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_transferir_rms), 0) FROM remesa WHERE estado_rms = ?");
     $stmt->execute([$estado]);
     $montos_por_estado[$estado] = (float)$stmt->fetchColumn();
+
+    // Cantidad de registros (para fichas)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM remesa WHERE estado_rms = ?");
+    $stmt->execute([$estado]);
+    $total_registros_estado[$estado] = (int)$stmt->fetchColumn();
 }
 
 // === 2. Totales financieros ===
@@ -35,7 +42,7 @@ $stmt = $pdo->query("
 ");
 $total_rendido = (float)$stmt->fetchColumn();
 
-// Total notas de cobranza (usando total_monto_nc)
+// Total notas de cobranza
 $stmt = $pdo->query("SELECT COALESCE(SUM(total_monto_nc), 0) FROM notacobranza");
 $total_notas_cobranza = (float)$stmt->fetchColumn();
 
@@ -59,7 +66,7 @@ $stmt = $pdo->query("
 ");
 $ultimas_remesas = $stmt->fetchAll();
 
-// === 4. Obtener lista de clientes para búsqueda inteligente ===
+// === 4. Clientes para búsqueda ===
 $stmt = $pdo->query("SELECT id_clt, nombre_clt FROM clientes ORDER BY nombre_clt");
 $clientes = $stmt->fetchAll();
 ?>
@@ -73,76 +80,74 @@ $clientes = $stmt->fetchAll();
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        <style>
-            .container {
-                max-width: 100%;
-                padding-left: 10%;
-                padding-right: 10%;
-            }
-            /* Asegurar que las fichas de estado siempre sean 4 por fila */
-            .stats-grid-estado {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 1rem;
-                margin-bottom: 1.5rem;
-            }
-            .stats-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 1rem;
-                margin-bottom: 1.5rem;
-            }
-            .stat-card {
-                background: white;
-                border-radius: 8px;
-                padding: 1rem;
-                text-align: center;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                border-left: 4px solid #3498db;
-            }
-            .stat-value {
-                font-size: 1.4rem;
-                font-weight: bold;
-                color: #2c3e50;
-                margin: 0.3rem 0;
-            }
-            .stat-label {
-                font-size: 0.9rem;
-                color: #7f8c8d;
-            }
-            .search-box {
-                margin: 1.5rem 0;
-                position: relative;
-            }
-            .search-box input {
-                width: 100%;
-                padding: 0.6rem;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-            }
-            .search-results {
-                position: absolute;
-                z-index: 1000;
-                background: white;
-                border: 1px solid #ccc;
-                width: 100%;
-                max-height: 200px;
-                overflow-y: auto;
-                display: none;
-            }
-            .search-results div {
-                padding: 0.6rem;
-                cursor: pointer;
-                border-bottom: 1px solid #eee;
-            }
-            .search-results div:hover {
-                background: #f1f1f1;
-            }
-            .chart-container {
-                height: 200px;
-                margin: 1.5rem 0;
-            }
-        </style>
+        .container {
+            max-width: 100%;
+            padding-left: 10%;
+            padding-right: 10%;
+        }
+        .stats-grid-estado {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stats-grid-financieros {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0.3rem 0;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        .search-box {
+            margin: 1.5rem 0;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-results {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .search-results div {
+            padding: 0.6rem;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .search-results div:hover {
+            background: #f1f1f1;
+        }
+        .chart-container {
+            height: 200px;
+            margin: 1.5rem 0;
+        }
+    </style>
 </head>
 <body>
 <?php include '../includes/header.php'; ?>
@@ -152,20 +157,20 @@ $clientes = $stmt->fetchAll();
         <i class="fas fa-tachometer-alt"></i> Dashboard
     </h2>
 
-    <!-- === FICHAS POR ESTADO === -->
-    <h3 style="margin-bottom: 0.8rem; font-weight: bold;">Estado de Solicitudes</h3>
-    <div class="stats-grid-estado" style="grid-template-columns: repeat(8, 1fr);">
+    <!-- === FICHAS POR ESTADO (CANTIDAD) === -->
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold;">Cantidad de Solicitudes por Estado</h3>
+    <div class="stats-grid-estado">
         <?php foreach ($estados_validos as $estado): ?>
         <div class="stat-card">
             <div class="stat-label"><?= htmlspecialchars($estado) ?></div>
-            <div class="stat-value"><?= $totales_estado[$estado] ?></div>
+            <div class="stat-value"><?= $total_registros_estado[$estado] ?></div>
         </div>
         <?php endforeach; ?>
     </div>
 
     <!-- === TOTALES FINANCIEROS === -->
     <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Totales Financieros</h3>
-    <div class="stats-grid">
+    <div class="stats-grid-financieros">
         <div class="stat-card" style="border-left-color: #27ae60;">
             <div class="stat-label">Total Transferido</div>
             <div class="stat-value">$<?= number_format($total_transferido, 0, ',', '.') ?></div>
@@ -188,8 +193,8 @@ $clientes = $stmt->fetchAll();
         </div>
     </div>
 
-    <!-- === GRÁFICO DE BARRAS === -->
-    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Distribución por Estado</h3>
+    <!-- === GRÁFICO DE BARRAS: MONTOS POR ESTADO === -->
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Monto Acumulado por Estado</h3>
     <div class="chart-container">
         <canvas id="estadoChart"></canvas>
     </div>
@@ -217,20 +222,24 @@ $clientes = $stmt->fetchAll();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($ultimas_remesas as $r): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($r['mes_rms'] ?? '–') ?></td>
-                        <td><?= htmlspecialchars($r['fecha_rms']) ?></td>
-                        <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
-                        <td><?= htmlspecialchars($r['estado_rms']) ?></td>
-                        <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
-                        <td>
-                            <a href="/pages/remesa_view.php?edit=<?= $r['id_rms'] ?>" class="btn-primary" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                    <?php if (empty($ultimas_remesas)): ?>
+                        <tr><td colspan="6" style="text-align: center;">No hay remesas.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($ultimas_remesas as $r): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($r['mes_rms'] ?? '–') ?></td>
+                            <td><?= htmlspecialchars($r['fecha_rms']) ?></td>
+                            <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
+                            <td><?= htmlspecialchars($r['estado_rms']) ?></td>
+                            <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
+                            <td>
+                                <a href="/pages/remesa_view.php?edit=<?= (int)$r['id_rms'] ?>" class="btn-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -265,7 +274,6 @@ document.getElementById('busqueda-inteligente').addEventListener('input', functi
     }
 });
 
-// Cerrar resultados al hacer clic fuera
 document.addEventListener('click', function(e) {
     const resultados = document.getElementById('resultados-busqueda');
     const input = document.getElementById('busqueda-inteligente');
@@ -274,16 +282,15 @@ document.addEventListener('click', function(e) {
     }
 });
 
-<script>
-// === GRÁFICO DE BARRAS: MONTOS POR ESTADO ===
+// === GRÁFICO DE BARRAS ===
 const ctx = document.getElementById('estadoChart').getContext('2d');
 new Chart(ctx, {
     type: 'bar',
-    data: {
+     {
         labels: <?= json_encode(array_values($estados_validos)) ?>,
         datasets: [{
             label: 'Monto Total ($)',
-            data: <?= json_encode(array_values($montos_por_estado)) ?>,
+             <?= json_encode(array_values($montos_por_estado)) ?>,
             backgroundColor: [
                 '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
                 '#9b59b6', '#1abc9c', '#d35400', '#2c3e50'
@@ -311,10 +318,7 @@ new Chart(ctx, {
             },
             y: {
                 grid: { display: false },
-                ticks: { 
-                    display: false,
-                    precision: 0
-                },
+                ticks: { display: false },
                 beginAtZero: true
             }
         }
