@@ -126,86 +126,71 @@ if (php_sapi_name() !== 'cli') {
     </div>
     <?php endif; ?>
 
-    <!-- Ficha de Remesa -->
+    <!-- Ficha de Nota de Cobranza -->
     <div id="ficha-remesa" style="display: <?= $id_cabecera ? 'block' : 'none' ?>;" class="card" style="margin-bottom: 1.5rem;">
         <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
             <!-- Fila 1 -->
             <div><strong>CLIENTE:</strong></div>
-            <div class="valor-ficha" id="cliente_ficha"><?= htmlspecialchars($cliente_nombre) ?></div>
+            <div class="valor-ficha" id="cliente_ficha" style="grid-column: span 3;"><?= htmlspecialchars($cliente_nombre) ?></div>
             <div><strong>CONTACTO:</strong></div>
-            <div class="valor-ficha" id="contacto_ficha"><?= htmlspecialchars($contacto_rms) ?></div>
+            <div class="valor-ficha"><?= htmlspecialchars($contacto_rms) ?></div>
             <div><strong>FECHA:</strong></div>
-            <div class="valor-ficha" id="fecha_ficha"><?= htmlspecialchars($fecha_rms) ?></div>
-            <div><strong>MES:</strong></div>
-            <div class="valor-ficha" id="mes_ficha"><?= htmlspecialchars($mes_rms) ?></div>
+            <div class="valor-ficha"><?= htmlspecialchars($fecha_rms) ?></div>
 
             <!-- Fila 2 -->
-            <div><strong>DESPACHO:</strong></div>
-            <div class="valor-ficha" id="despacho_ficha"><?= htmlspecialchars($despacho_rms) ?></div>
             <div><strong>REF.CLTE.:</strong></div>
-            <div class="valor-ficha" id="ref_clte_ficha" style="grid-column: span 2;"><?= htmlspecialchars($ref_clte_rms) ?></div>
-            <div><strong>MERCANCÍA:</strong></div>
-            <div class="valor-ficha" id="mercancia_ficha" style="grid-column: span 2;"><?= htmlspecialchars($mercancia_nombre) ?></div>
+            <div class="valor-ficha" style="grid-column: span 3;"><?= htmlspecialchars($ref_clte_rms) ?></div>
+            <div><strong>DESPACHO:</strong></div>
+            <div class="valor-ficha"><?= htmlspecialchars($despacho_rms) ?></div>
+            <div><strong>MES:</strong></div>
+            <div class="valor-ficha"><?= htmlspecialchars($mes_rms) ?></div>
+
+            <!-- Fila 3 -->
             <div><strong>ESTADO:</strong></div>
-            <div class="valor-ficha" id="estado_ficha"><?= htmlspecialchars($estado_rms) ?></div>
+            <div class="valor-ficha" style="grid-column: span 5;"><?= htmlspecialchars($estado_rms) ?></div>
+            <div><strong>TOTAL REMESA:</strong></div>
+            <div class="valor-ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
 
-            <!-- Fila Rendido/Saldo -->
-            <div></div>
-            <div></div>
-            <div><strong>Total Rendido:</strong></div>
-            <div class="valor-ficha" id="total_rendido_ficha">0</div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-
-            <!-- Fila ID_CLT -->
-            <div></div>
-            <div></div>
-            <div><strong>ID_CLT:</strong></div>
-            <div class="valor-ficha" id="id_clt_ficha"><?= htmlspecialchars($remesa_data['id_clt_rms'] ?? '–') ?></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-
-            <!-- Separador -->
-            <div style="grid-column: span 8; height: 1rem;"></div>
-
-            <!-- Títulos de saldos -->
-            <div style="grid-column: span 4; text-align: center; font-weight: bold;">SOLICITUD DE FONDOS</div>
-            <div style="grid-column: span 2; text-align: center; font-weight: bold;">NOTA COBRANZA</div>
-            <div style="grid-column: span 2; text-align: center; font-weight: bold;">SALDOS</div>
-
-            <!-- Totales -->
-            <div><strong>Total Transferido:</strong></div>
-            <div class="valor-ficha" id="total_transferir_ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
-            <div><strong>Total Nota:</strong></div>
-            <div class="valor-ficha" id="total_nota_ficha">0</div>
-            <div><strong>A favor de:</strong></div>
-            <div class="valor-ficha" id="afavor_ficha">OK</div>
-
-            <!-- Saldo y concepto -->
-            <div><strong>Saldo $:</strong></div>
-            <div class="valor-ficha" id="saldo_ficha">0</div>
-            <div><strong>Concepto:</strong></div>
-            <div style="grid-column: span 5;">
+            <!-- Fila 4 -->
+            <div><strong>CONCEPTO:</strong></div>
+            <div class="valor-ficha" style="grid-column: span 5;">
                 <input type="text" 
-                       id="concepto_nc_input" 
-                       value="<?= htmlspecialchars($concepto_nc) ?>" 
-                       style="width: 100%; padding: 0.3rem; font-size: 0.9rem; border: 1px solid #ddd; border-radius: 4px;"
-                       <?= ($cabecera && (float)$cabecera['total_monto_nc'] > 0) ? 'readonly' : '' ?>>
+                    id="concepto_nc_input" 
+                    value="<?= htmlspecialchars($concepto_nc) ?>" 
+                    style="width: 100%; padding: 0.3rem; font-size: 0.9rem; border: 1px solid #ddd; border-radius: 4px;"
+                    <?= ($cabecera && (float)$cabecera['total_monto_nc'] > 0) ? 'readonly' : '' ?>>
             </div>
+            <div><strong>TOTAL RENDICIÓN:</strong></div>
+            <div class="valor-ficha" id="total_rendido_ficha">0</div>
 
-            <!-- Nro. Nota -->
+            <!-- Fila 5 -->
+            <div><strong>NRO.NC:</strong></div>
+            <div class="valor-ficha"><?= htmlspecialchars($nro_nc) ?></div>
+            <div><strong>FECHA VCTO.:</strong></div>
+            <div class="valor-ficha"><?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?></div>
             <div></div>
             <div></div>
-            <div><strong>Nro. Nota:</strong></div>
-            <div class="valor-ficha" id="nro_nota_ficha"><?= htmlspecialchars($nro_nc) ?></div>
+            <div><strong>NOTA COBRANZA:</strong></div>
+            <div class="valor-ficha" id="total_nota_ficha">0</div>
+
+            <!-- Fila 6 -->
+            <div><strong>A FAVOR DE:</strong></div>
+            <div class="valor-ficha" id="afavor_ficha">OK</div>
+            <div><strong>SALDO:</strong></div>
+            <div class="valor-ficha" id="saldo_ficha">0</div>
             <div></div>
             <div></div>
             <div></div>
             <div></div>
+
+            <!-- Fila 7: Botón solo si es edición -->
+            <div style="grid-column: span 8; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                <?php if ($id_cabecera): ?>
+                    <button class="btn-primary" onclick="abrirSubmodalNC()" style="padding: 0.4rem 0.8rem;">
+                        <i class="fas fa-plus"></i> Agregar Concepto
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
