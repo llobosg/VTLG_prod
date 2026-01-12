@@ -35,12 +35,11 @@ $stmt = $pdo->query("
 ");
 $total_rendido = (float)$stmt->fetchColumn();
 
-// Total notas cobranza (asumiendo columna `total_nota_cobranza` en remesa o tabla separada)
-// Aquí asumimos que hay una tabla `notacobranza` con campo `monto_nc`
-$stmt = $pdo->query("SELECT COALESCE(SUM(monto_nc), 0) FROM notacobranza");
+// Total notas de cobranza (usando total_monto_nc)
+$stmt = $pdo->query("SELECT COALESCE(SUM(total_monto_nc), 0) FROM notacobranza");
 $total_notas_cobranza = (float)$stmt->fetchColumn();
 
-// Saldo cliente y agencia (simulado: saldo = transferido - rendido)
+// Saldo cliente y agencia
 $saldo_cliente = max(0, $total_transferido - $total_rendido);
 $saldo_agencia = max(0, $total_rendido - $total_transferido);
 
