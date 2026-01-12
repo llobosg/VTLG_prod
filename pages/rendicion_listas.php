@@ -56,11 +56,15 @@ if (php_sapi_name() !== 'cli') {
 <body>
 <?php include '../includes/header.php'; ?>
 <div class="container">
+    <!-- ✅ Título + botón alineado como en remesa_view.php -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
         <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
             <i class="fas fa-receipt"></i> Rendición de Gastos
         </h2>
-        <!-- Botón eliminado porque no aplica en listado -->
+        <!-- ✅ Botón idéntico al de remesa_view.php -->
+        <a href="/pages/rendicion_view.php" class="btn-primary" style="text-decoration: none; padding: 0.4rem 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fas fa-plus"></i> Agregar Rendición
+        </a>
     </div>
 
     <div class="card">
