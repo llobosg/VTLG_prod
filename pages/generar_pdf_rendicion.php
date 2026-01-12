@@ -101,6 +101,8 @@ $html = '
 <body>
 <div class="container" style="margin-bottom: 40px;">
     <div style="font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
+    <div></div>
+    <div></div>
     <h2>RENDICIÓN DE GASTOS</h2>
     <!-- SECCIÓN SUPERIOR -->
     <div class="section-box">
