@@ -2,49 +2,66 @@
 require_once '../session_check.php';
 require_once '../config.php';
 
-$pdo = getDBConnection();
-$rol = $_SESSION['rol'] ?? 'usuario';
-
-// === KPIs ===
-// Solicitudes por estado
-$estados = ['Confeccion', 'solicitada', 'Transferida OK'];
-$kpis_estado = [];
-$total_transferir = 0;
-foreach ($estados as $e) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total, COALESCE(SUM(total_transferir_rms), 0) as suma FROM remesa WHERE estado_rms = ?");
-    $stmt->execute([$e]);
-    $res = $stmt->fetch();
-    $kpis_estado[$e] = [
-        'count' => (int)$res['total'],
-        'suma' => (float)$res['suma']
-    ];
-    if ($e === 'solicitada') {
-        $total_transferir = $res['suma'];
-    }
+if (php_sapi_name() === 'cli') {
+    exit;
 }
 
-// Total rendido
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(monto_pago_rndcn), 0) as total FROM rendicion");
-$stmt->execute();
+$pdo = getDBConnection();
+
+// === 1. Totales por estado ===
+$estados_validos = [
+    'confección', 'solicitada', 'transferencia OK', 'Rendida',
+    'Nota Cobranza enviada', 'Nota Cobranza pagada', 'Cerrada OK', 'Cerrada con observaciones'
+];
+
+$totales_estado = [];
+foreach ($estados_validos as $estado) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) AS total FROM remesa WHERE estado_rms = ?");
+    $stmt->execute([$estado]);
+    $totales_estado[$estado] = (int)$stmt->fetchColumn();
+}
+
+// === 2. Totales financieros ===
+// Total transferido
+$stmt = $pdo->query("SELECT COALESCE(SUM(total_transferir_rms), 0) FROM remesa");
+$total_transferido = (float)$stmt->fetchColumn();
+
+// Total rendido (suma de todos los montos en rendicion)
+$stmt = $pdo->query("
+    SELECT 
+        COALESCE(SUM(monto_pago_rndcn), 0) + 
+        COALESCE(SUM(monto_gastos_agencia_rndcn * 1.19), 0) 
+    FROM rendicion
+");
 $total_rendido = (float)$stmt->fetchColumn();
 
-// Saldo pendiente
-$saldo_pendiente = $total_transferir - $total_rendido;
+// Total notas cobranza (asumiendo columna `total_nota_cobranza` en remesa o tabla separada)
+// Aquí asumimos que hay una tabla `notacobranza` con campo `monto_nc`
+$stmt = $pdo->query("SELECT COALESCE(SUM(monto_nc), 0) FROM notacobranza");
+$total_notas_cobranza = (float)$stmt->fetchColumn();
 
-// === Tabla de remesas (últimas 20) ===
-$stmt = $pdo->prepare("
-    SELECT 
-        r.*,
+// Saldo cliente y agencia (simulado: saldo = transferido - rendido)
+$saldo_cliente = max(0, $total_transferido - $total_rendido);
+$saldo_agencia = max(0, $total_rendido - $total_transferido);
+
+// === 3. Últimas 5 remesas ===
+$stmt = $pdo->query("
+    SELECT
+        r.id_rms,
+        r.fecha_rms,
+        r.estado_rms,
         c.nombre_clt AS cliente_nombre,
-        m.mercancia_mrcc AS mercancia_nombre
+        r.total_transferir_rms
     FROM remesa r
     LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-    LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-    ORDER BY r.fecha_rms DESC
-    LIMIT 20
+    ORDER BY r.id_rms DESC
+    LIMIT 5
 ");
-$stmt->execute();
-$remesas = $stmt->fetchAll();
+$ultimas_remesas = $stmt->fetchAll();
+
+// === 4. Obtener lista de clientes para búsqueda inteligente ===
+$stmt = $pdo->query("SELECT id_clt, nombre_clt FROM clientes ORDER BY nombre_clt");
+$clientes = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -54,148 +71,157 @@ $remesas = $stmt->fetchAll();
     <title>Dashboard - SIGA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .kpi-card {
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
             background: white;
             border-radius: 8px;
             padding: 1rem;
             text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
         }
-        .kpi-value {
-            font-size: 1.8rem;
+        .stat-value {
+            font-size: 1.4rem;
             font-weight: bold;
-            margin: 0.5rem 0;
+            color: #2c3e50;
+            margin: 0.3rem 0;
         }
-        .kpi-label {
-            color: #666;
+        .stat-label {
             font-size: 0.9rem;
+            color: #7f8c8d;
         }
-        .busqueda-container {
+        .search-box {
+            margin: 1.5rem 0;
             position: relative;
-            margin: 1.2rem 0;
         }
-        #resultados-busqueda {
-            position: absolute;
-            z-index: 3000;
-            background: white;
-            border: 1px solid #ddd;
-            border-top: none;
-            max-height: 300px;
-            overflow-y: auto;
+        .search-box input {
             width: 100%;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-results {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
             display: none;
         }
-        #resultados-busqueda div {
-            padding: 0.7rem;
+        .search-results div {
+            padding: 0.6rem;
             cursor: pointer;
             border-bottom: 1px solid #eee;
         }
-        #resultados-busqueda div:hover {
-            background: #f0f0f0;
+        .search-results div:hover {
+            background: #f1f1f1;
+        }
+        .chart-container {
+            height: 200px;
+            margin: 1.5rem 0;
         }
     </style>
 </head>
 <body>
 <?php include '../includes/header.php'; ?>
+
 <div class="container">
-    <h2 style="font-weight: bold; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
-        <i class="fas fa-chart-line"></i> Dashboard Operativo
+    <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
     </h2>
 
-    <!-- === KPIs === -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.8rem;">
-        <?php foreach ($estados as $e): ?>
-        <div class="kpi-card">
-            <div class="kpi-label"><?= htmlspecialchars($e) ?></div>
-            <div class="kpi-value"><?= number_format($kpis_estado[$e]['count'], 0, ',', '.') ?></div>
-            <div style="font-size: 0.85rem; color: #27ae60;">
-                $<?= number_format($kpis_estado[$e]['suma'], 0, ',', '.') ?>
-            </div>
+    <!-- === FICHAS POR ESTADO === -->
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold;">Estado de Solicitudes</h3>
+    <div class="stats-grid">
+        <?php foreach ($estados_validos as $estado): ?>
+        <div class="stat-card">
+            <div class="stat-label"><?= htmlspecialchars($estado) ?></div>
+            <div class="stat-value"><?= $totales_estado[$estado] ?></div>
         </div>
         <?php endforeach; ?>
-        
-        <div class="kpi-card" style="background: #e8f4fc;">
-            <div class="kpi-label">Total a Transferir</div>
-            <div class="kpi-value" style="color: #2980b9;">
-                $<?= number_format($total_transferir, 0, ',', '.') ?>
-            </div>
+    </div>
+
+    <!-- === TOTALES FINANCIEROS === -->
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Totales Financieros</h3>
+    <div class="stats-grid">
+        <div class="stat-card" style="border-left-color: #27ae60;">
+            <div class="stat-label">Total Transferido</div>
+            <div class="stat-value">$<?= number_format($total_transferido, 0, ',', '.') ?></div>
         </div>
-        
-        <div class="kpi-card" style="background: #e8f5e9;">
-            <div class="kpi-label">Total Rendido</div>
-            <div class="kpi-value" style="color: #27ae60;">
-                $<?= number_format($total_rendido, 0, ',', '.') ?>
-            </div>
+        <div class="stat-card" style="border-left-color: #e67e22;">
+            <div class="stat-label">Total Rendido</div>
+            <div class="stat-value">$<?= number_format($total_rendido, 0, ',', '.') ?></div>
         </div>
-        
-        <div class="kpi-card" style="background: <?= $saldo_pendiente > 0 ? '#fef9e7' : '#f5b7b1' ?>;">
-            <div class="kpi-label">Saldo Pendiente</div>
-            <div class="kpi-value" style="color: <?= $saldo_pendiente > 0 ? '#d35400' : '#e74c3c' ?>;">
-                $<?= number_format(abs($saldo_pendiente), 0, ',', '.') ?>
-                <?= $saldo_pendiente > 0 ? '(por rendir)' : '(sobrante)' ?>
-            </div>
+        <div class="stat-card" style="border-left-color: #9b59b6;">
+            <div class="stat-label">Notas Cobranza</div>
+            <div class="stat-value">$<?= number_format($total_notas_cobranza, 0, ',', '.') ?></div>
         </div>
+        <div class="stat-card" style="border-left-color: #2980b9;">
+            <div class="stat-label">Saldo Cliente</div>
+            <div class="stat-value">$<?= number_format($saldo_cliente, 0, ',', '.') ?></div>
+        </div>
+        <div class="stat-card" style="border-left-color: #e74c3c;">
+            <div class="stat-label">Saldo Agencia</div>
+            <div class="stat-value">$<?= number_format($saldo_agencia, 0, ',', '.') ?></div>
+        </div>
+    </div>
+
+    <!-- === GRÁFICO DE BARRAS === -->
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Distribución por Estado</h3>
+    <div class="chart-container">
+        <canvas id="estadoChart"></canvas>
     </div>
 
     <!-- === BÚSQUEDA INTELIGENTE === -->
-    <div class="busqueda-container">
-        <input type="text" 
-               id="busqueda-inteligente" 
-               placeholder="Buscar por cliente, mercancía, ref.clte, mes, etc..." 
-               style="width: 100%; height: 2.4rem; padding: 0.5rem; font-size: 0.95rem;">
-        <div id="resultados-busqueda"></div>
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Búsqueda Rápida</h3>
+    <div class="search-box">
+        <input type="text" id="busqueda-inteligente" placeholder="Buscar cliente...">
+        <div id="resultados-busqueda" class="search-results"></div>
     </div>
 
-    <!-- === TABLA DE REMESAS === -->
+    <!-- === ÚLTIMAS 5 REMESAS === -->
+    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 1.5rem;">Últimas Solicitudes</h3>
     <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="margin: 0;">Solicitudes Recientes</h3>
-            <?php if ($rol === 'admin'): ?>
-            <a href="/pages/remesa_view.php" class="btn-primary" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">
-                <i class="fas fa-plus"></i> Nueva Solicitud
-            </a>
-            <?php endif; ?>
-        </div>
-
         <div class="table-container">
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Fecha</th>
                         <th>Cliente</th>
-                        <th>Mercancía</th>
-                        <th>Ref.Clte.</th>
                         <th>Estado</th>
-                        <th>Total Transferir</th>
+                        <th>Transferido</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="tabla-reemesas">
-                    <?php foreach ($remesas as $r): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($r['fecha_rms']) ?></td>
-                        <td><?= htmlspecialchars($r['cliente_nombre'] ?? 'ID: ' . $r['cliente_rms']) ?></td>
-                        <td><?= htmlspecialchars($r['mercancia_nombre'] ?? 'ID: ' . $r['mercancia_rms']) ?></td>
-                        <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($r['estado_rms']) ?></td>
-                        <td><?= number_format($r['total_transferir_rms'] ?? 0, 0, ',', '.') ?></td>
-                        <td>
-                            <a href="/pages/generar_pdf.php?id=<?= $r['id_rms'] ?>" target="_blank" class="btn-comment" title="PDF">
-                                <i class="fas fa-file-pdf"></i>
-                            </a>
-                            <?php if ($rol === 'admin' && $r['estado_rms'] === 'solicitada'): ?>
-                            <a href="/pages/rendicion_view.php?seleccionar=<?= $r['id_rms'] ?>" class="btn-warning" title="Rendición">
-                                <i class="fas fa-receipt"></i>
-                            </a>
-                            <?php endif; ?>
-                            <a href="/pages/remesa_view.php?editar=<?= $r['id_rms'] ?>" class="btn-edit" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                <tbody>
+                    <?php if (empty($ultimas_remesas)): ?>
+                        <tr><td colspan="6" style="text-align: center;">No hay remesas.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($ultimas_remesas as $r): ?>
+                        <tr>
+                            <td><?= $r['id_rms'] ?></td>
+                            <td><?= htmlspecialchars($r['fecha_rms']) ?></td>
+                            <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
+                            <td><?= htmlspecialchars($r['estado_rms']) ?></td>
+                            <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
+                            <td>
+                                <a href="/pages/remesa_view.php?edit=<?= $r['id_rms'] ?>" class="btn-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -204,39 +230,29 @@ $remesas = $stmt->fetchAll();
 
 <script>
 // === BÚSQUEDA INTELIGENTE ===
-document.getElementById('busqueda-inteligente')?.addEventListener('input', async function() {
-    const term = this.value.trim();
+const clientes = <?= json_encode($clientes) ?>;
+document.getElementById('busqueda-inteligente').addEventListener('input', function() {
+    const term = this.value.trim().toLowerCase();
     const div = document.getElementById('resultados-busqueda');
-    div.style.display = 'none';
-    if (!term) {
-        // Si se borra la búsqueda, recargar tabla completa
-        location.reload();
+    div.innerHTML = '';
+    if (term.length < 2) {
+        div.style.display = 'none';
         return;
     }
-
-    try {
-        const res = await fetch(`/api/buscar_remesas_dashboard.php?term=${encodeURIComponent(term)}`);
-        const data = await res.json();
-        div.innerHTML = '';
-        if (data.length > 0) {
-            data.forEach(r => {
-                const d = document.createElement('div');
-                d.innerHTML = `<strong>${r.cliente_nombre || 'ID: ' + r.cliente_rms}</strong><br>
-                              <small>
-                                ${r.mercancia_nombre || '–'} | 
-                                Ref: ${r.ref_clte_rms || '–'} | 
-                                ${r.fecha_rms} | ${r.estado_rms}
-                              </small>`;
-                d.onclick = () => {
-                    // Redirigir a la ficha de remesa (editar)
-                    window.location.href = `/pages/remesa_view.php?editar=${r.id_rms}`;
-                };
-                div.appendChild(d);
-            });
-            div.style.display = 'block';
-        }
-    } catch (e) {
-        console.error('Error en búsqueda:', e);
+    const filtrados = clientes.filter(c => c.nombre_clt.toLowerCase().includes(term));
+    if (filtrados.length > 0) {
+        filtrados.forEach(c => {
+            const el = document.createElement('div');
+            el.textContent = c.nombre_clt;
+            el.onclick = () => {
+                window.location.href = `/pages/remesa_view.php?cliente=${c.id_clt}`;
+                div.style.display = 'none';
+            };
+            div.appendChild(el);
+        });
+        div.style.display = 'block';
+    } else {
+        div.style.display = 'none';
     }
 });
 
@@ -246,6 +262,36 @@ document.addEventListener('click', function(e) {
     const input = document.getElementById('busqueda-inteligente');
     if (!resultados.contains(e.target) && e.target !== input) {
         resultados.style.display = 'none';
+    }
+});
+
+// === GRÁFICO DE BARRAS ===
+const ctx = document.getElementById('estadoChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: <?= json_encode(array_values($estados_validos)) ?>,
+        datasets: [{
+            label: 'Cantidad de Remesas',
+            data: <?= json_encode(array_values($totales_estado)) ?>,
+            backgroundColor: [
+                '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
+                '#9b59b6', '#1abc9c', '#d35400', '#2c3e50'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        }
     }
 });
 </script>
