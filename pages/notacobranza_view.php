@@ -126,7 +126,7 @@ if (php_sapi_name() !== 'cli') {
     </div>
     <?php endif; ?>
 
-    <!-- Ficha de Nota de Cobranza (layout exacto solicitado) -->
+    <!-- Ficha de Nota de Cobranza -->
     <div id="ficha-remesa" style="display: <?= $id_cabecera ? 'block' : 'none' ?>;" class="card" style="margin-bottom: 1.5rem;">
         <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
             <!-- Fila 1 -->
@@ -151,9 +151,21 @@ if (php_sapi_name() !== 'cli') {
             <div></div>
             <div></div>
             <div><strong>NRO.NC:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($nro_nc) ?></div>
+            <div class="valor-ficha">
+                <?php if ($id_cabecera): ?>
+                    <?= htmlspecialchars($nro_nc) ?>
+                <?php else: ?>
+                    <input type="text" id="nro_nc_input" readonly style="width: 100%; height: 2.0rem; padding: 0.3rem; background: #f0f0f0;">
+                <?php endif; ?>
+            </div>
             <div><strong>FECHA VCTO.:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?></div>
+            <div class="valor-ficha">
+                <?php if ($id_cabecera): ?>
+                    <?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?>
+                <?php else: ?>
+                    <input type="date" id="fecha_vence_nc_input" style="width: 100%; height: 2.0rem; padding: 0.3rem;">
+                <?php endif; ?>
+            </div>
 
             <!-- Fila 4 -->
             <div><strong>CONCEPTO:</strong></div>
@@ -161,8 +173,7 @@ if (php_sapi_name() !== 'cli') {
                 <input type="text" 
                     id="concepto_nc_input" 
                     value="<?= htmlspecialchars($concepto_nc) ?>" 
-                    style="width: 100%; padding: 0.3rem; font-size: 0.9rem; border: 1px solid #ddd; border-radius: 4px;"
-                    <?= ($cabecera && (float)$cabecera['total_monto_nc'] > 0) ? 'readonly' : '' ?>>
+                    style="width: 100%; padding: 0.3rem; font-size: 0.9rem; border: 1px solid #ddd; border-radius: 4px;">
             </div>
             <div><strong>TOTAL REMESA:</strong></div>
             <div class="valor-ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
@@ -171,9 +182,13 @@ if (php_sapi_name() !== 'cli') {
             <div></div>
             <div></div>
             <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
+            <div style="grid-column: span 3; display: flex; justify-content: flex-end;">
+                <?php if (!$id_cabecera): ?>
+                    <button class="btn-primary" onclick="guardarCabeceraNC()" style="padding: 0.4rem 0.8rem;">
+                        <i class="fas fa-save"></i> Grabar Nota Cobranza
+                    </button>
+                <?php endif; ?>
+            </div>
             <div><strong>TOTAL RENDICIÓN:</strong></div>
             <div class="valor-ficha" id="total_rendido_ficha">0</div>
 
@@ -186,15 +201,6 @@ if (php_sapi_name() !== 'cli') {
             <div></div>
             <div><strong>NOTA COBRANZA:</strong></div>
             <div class="valor-ficha" id="total_nota_ficha">0</div>
-
-            <!-- Fila 7: Botón solo si es edición -->
-            <div style="grid-column: span 8; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-                <?php if ($id_cabecera): ?>
-                    <button class="btn-primary" onclick="abrirSubmodalNC()" style="padding: 0.4rem 0.8rem;">
-                        <i class="fas fa-plus"></i> Agregar ítem NC
-                    </button>
-                <?php endif; ?>
-            </div>
         </div>
     </div>
 
@@ -299,106 +305,146 @@ const id_cabecera_actual = <?= (int)($id_cabecera ?? 0) ?>;
 const id_rms_actual = <?= (int)($id_rms_para_rendicion ?? 0) ?>;
 const total_transferir_valor = <?= (float)$total_transferir_rms ?>;
 
-// === CÁLCULO DE IVA (seguro) ===
+// === CÁLCULO DE IVA ===
 document.getElementById('montoneto_nc')?.addEventListener('input', function() {
     const montoneto = parseInt(this.value) || 0;
     const montoiva = Math.round(montoneto * 0.19);
     const monto = montoneto + montoiva;
-    
     const ivaField = document.getElementById('montoiva_nc');
     const montoField = document.getElementById('monto_nc');
     if (ivaField) ivaField.value = montoiva;
     if (montoField) montoField.value = monto;
 });
 
-// === BÚSQUEDA INTELIGENTE ===
-<?php if (!$id_cabecera): ?>
-document.getElementById('busqueda-inteligente')?.addEventListener('input', async function() {
-    const term = this.value.trim();
-    const div = document.getElementById('resultados-busqueda');
-    div.style.display = 'none';
-    if (!term) return;
-
-    try {
-        const res = await fetch(`/api/buscar_remesas.php?term=${encodeURIComponent(term)}`);
-        const data = await res.json();
-        div.innerHTML = '';
-        if (data.length > 0) {
-            data.forEach(r => {
-                const d = document.createElement('div');
-                d.style.padding = '0.8rem';
-                d.style.cursor = 'pointer';
-                d.style.borderBottom = '1px solid #eee';
-                d.innerHTML = `<strong>${r.cliente_nombre || 'ID: ' + r.cliente_rms}</strong><br>
-                              <small>
-                                Mercancía: ${r.mercancia_nombre || '–'} | 
-                                Ref.Clte: ${r.ref_clte_rms || '–'} | 
-                                Fecha: ${r.fecha_rms}
-                              </small>`;
-                d.onclick = () => {
-                    crearNotaCobranza(r.id_rms);
-                    div.style.display = 'none';
-                    this.value = '';
-                };
-                div.appendChild(d);
-            });
-            div.style.display = 'block';
-        }
-    } catch (e) {
-        console.error('Error en búsqueda:', e);
+// === CREAR CABECERA NC (solo primera vez) ===
+function guardarCabeceraNC() {
+    const nro_nc_input = document.getElementById('nro_nc_input');
+    const fecha_vence = document.getElementById('fecha_vence_nc_input').value;
+    const concepto = document.getElementById('concepto_nc_input').value.trim();
+    
+    if (!fecha_vence || !concepto) {
+        alert('❌ Fecha Vencimiento y Concepto son obligatorios.');
+        return;
     }
-});
-<?php endif; ?>
 
-// === CREAR NOTA ===
-function crearNotaCobranza(id_rms) {
+    // Calcular nro_nc = YYMMDD + id_rms
+    const today = new Date().toISOString().slice(2,10).replace(/-/g, '');
+    const nro_nc = today + <?= (int)$id_rms_para_rendicion ?>;
+
+    nro_nc_input.value = nro_nc;
+
+    const formData = new FormData();
+    formData.append('action', 'crear_cabecera');
+    formData.append('id_rms', <?= (int)$id_rms_para_rendicion ?>);
+    formData.append('nro_nc', nro_nc);
+    formData.append('fecha_vence_nc', fecha_vence);
+    formData.append('concepto_nc', concepto);
+
     fetch('/pages/notacobranza_logic.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'crear_cabecera', id_rms: id_rms })
+        body: formData
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            alert('✅ Nota de cobranza creada.');
             window.location.href = `/pages/notacobranza_view.php?id=${data.id_cabecera}`;
         } else {
-            alert('Error al crear nota: ' + data.message);
+            alert('❌ ' + data.message);
         }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('❌ Error de conexión.');
     });
 }
 
-// === FUNCIONES DE CONCEPTOS ===
+// === ABRIR SUBMODAL ÍTEM NC ===
+function abrirSubmodalNC() {
+    if (!id_cabecera_actual) {
+        alert('❌ Primero debes grabar la cabecera de la nota de cobranza.');
+        return;
+    }
+    // Limpiar y mostrar
+    ['item_nc', 'proveedor_nc', 'nro_doc_nc', 'montoneto_nc', 'montoiva_nc', 'monto_nc'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('id_cabecera').value = id_cabecera_actual;
+    document.getElementById('id_detalle').value = '';
+    document.getElementById('submodal-nc').style.display = 'flex';
+}
+
+// === GUARDAR ÍTEM NC (CORREGIDO) ===
+function guardarConceptoNC() {
+    const id_cabecera = document.getElementById('id_cabecera').value;
+    const item = document.getElementById('item_nc').value;
+    const proveedor = document.getElementById('proveedor_nc').value.trim();
+    const nro_doc = document.getElementById('nro_doc_nc').value;
+    const montoneto = document.getElementById('montoneto_nc').value;
+
+    if (!item || !proveedor || !montoneto) {
+        alert('❌ Todos los campos son obligatorios.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'crear_detalle');
+    formData.append('id_cabecera', id_cabecera);
+    formData.append('item_detalle', item);
+    formData.append('proveedor_detalle', proveedor);
+    formData.append('nro_doc_detalle', nro_doc);
+    formData.append('montoneto_detalle', montoneto);
+
+    fetch('/pages/notacobranza_logic.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Ítem agregado.');
+            cerrarSubmodalNC();
+            if (id_cabecera_actual) cargarDetallesNC(id_cabecera_actual);
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('❌ Error de conexión.');
+    });
+}
+
+// === CARGAR DATOS INICIALES ===
+<?php if ($id_cabecera): ?>
+cargarTotalRendiciones(id_rms_actual, total_transferir_valor);
+cargarDetallesNC(id_cabecera_actual);
+<?php endif; ?>
+
+// === Resto de funciones (placeholder o implementadas en lógica separada) ===
 function cargarDetallesNC(id_cabecera) {
     fetch(`/api/get_detalles_nc.php?id_cabecera=${id_cabecera}`)
         .then(r => r.json())
         .then(detalles => {
             const tbody = document.getElementById('lista-conceptos');
             if (!tbody) return;
-
-            let totalNeto = 0;
-            let totalIva = 0;
             let totalMonto = 0;
-
             if (detalles.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Sin conceptos registrados.</td></tr>';
             } else {
                 tbody.innerHTML = detalles.map(d => {
-                    const neto = parseFloat(d.montoneto_detalle) || 0;
-                    const iva = parseFloat(d.montoiva_detalle) || 0;
                     const monto = parseFloat(d.monto_detalle) || 0;
-                    totalNeto += neto;
-                    totalIva += iva;
                     totalMonto += monto;
                     return `
                         <tr>
                             <td>${d.item_detalle || ''}</td>
                             <td>${d.proveedor_detalle || ''}</td>
                             <td>${d.nro_doc_detalle || ''}</td>
-                            <td>${neto.toLocaleString('es-CL')}</td>
-                            <td>${iva.toLocaleString('es-CL')}</td>
+                            <td>${parseFloat(d.montoneto_detalle).toLocaleString('es-CL')}</td>
+                            <td>${parseFloat(d.montoiva_detalle).toLocaleString('es-CL')}</td>
                             <td>${monto.toLocaleString('es-CL')}</td>
                             <td>
-                                <a href="#" class="btn-edit" title="Editar" onclick="editarDetalle(${d.id_detalle}); return false;">
+                                <a href="#" class="btn-edit" title="Editar" onclick="alert('Edición no implementada.'); return false;">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(${d.id_detalle}); return false;">
@@ -409,15 +455,8 @@ function cargarDetallesNC(id_cabecera) {
                     `;
                 }).join('');
             }
-
-            // Actualizar totales
-            setTextContent('total_montoneto', totalNeto.toLocaleString('es-CL'));
-            setTextContent('total_montoiva', totalIva.toLocaleString('es-CL'));
-            setTextContent('total_monto', totalMonto.toLocaleString('es-CL'));
-            setTextContent('total_nota_ficha', totalMonto.toLocaleString('es-CL'));
-        })
-        .catch(err => {
-            console.error('Error al cargar detalles:', err);
+            document.getElementById('total_monto').innerText = totalMonto.toLocaleString('es-CL');
+            document.getElementById('total_nota_ficha').innerText = totalMonto.toLocaleString('es-CL');
         });
 }
 
@@ -428,74 +467,32 @@ function cargarTotalRendiciones(id_rms, total_transferir) {
             const totalRendido = Math.round(parseFloat(data.total_rendicion) || 0);
             const saldo = total_transferir - totalRendido;
             const aFavor = saldo < 0 ? 'agencia' : (saldo > 0 ? 'cliente' : 'OK');
-
-            setTextContent('total_rendido_ficha', totalRendido.toLocaleString('es-CL'));
-            setTextContent('saldo_ficha', Math.abs(saldo).toLocaleString('es-CL'));
-            setTextContent('afavor_ficha', aFavor);
-
-            window.saldo_disponible = saldo;
-        })
-        .catch(err => {
-            console.error('Error al cargar total rendido:', err);
+            document.getElementById('total_rendido_ficha').innerText = totalRendido.toLocaleString('es-CL');
+            document.getElementById('saldo_ficha').innerText = Math.abs(saldo).toLocaleString('es-CL');
+            document.getElementById('afavor_ficha').innerText = aFavor;
         });
-}
-
-// === UTILIDADES ===
-function setTextContent(id, text) {
-    const el = document.getElementById(id);
-    if (el && el.tagName === 'INPUT') {
-        el.value = text;
-    } else if (el) {
-        el.innerText = text;
-    }
-}
-
-function abrirSubmodalNC() {
-    if (!id_cabecera_actual) {
-        alert('Error: No hay nota de cobranza activa.');
-        return;
-    }
-    document.getElementById('id_cabecera').value = id_cabecera_actual;
-    document.getElementById('id_detalle').value = '';
-    // Limpiar campos
-    document.getElementById('item_nc').value = '';
-    document.getElementById('proveedor_nc').value = '';
-    document.getElementById('nro_doc_nc').value = '';
-    document.getElementById('montoneto_nc').value = '';
-    document.getElementById('montoiva_nc').value = '';
-    document.getElementById('monto_nc').value = '';
-    document.getElementById('submodal-nc').style.display = 'flex';
 }
 
 function cerrarSubmodalNC() {
     document.getElementById('submodal-nc').style.display = 'none';
 }
 
-// === CARGAR DATOS INICIALES ===
-<?php if ($id_cabecera): ?>
-cargarTotalRendiciones(id_rms_actual, total_transferir_valor);
-cargarDetallesNC(id_cabecera_actual);
-<?php endif; ?>
-
-// === FUNCIONES DE ACCIÓN (placeholder, implementar según lógica existente) ===
-function editarDetalle(id) {
-    alert('Edición de ítem NC no implementada aún.');
-}
 function confirmarEliminar(id) {
-    id_detalle_a_eliminar = id;
-    document.getElementById('modal-confirm').style.display = 'flex';
-}
-function confirmarEliminarAction() {
-    // Implementar lógica de eliminación
-    cerrarModal();
-    alert('Eliminación de ítem NC no implementada aún.');
-}
-function cerrarModal() {
-    document.getElementById('modal-confirm').style.display = 'none';
-}
-function generarPDFNotacobranza() {
-    if (id_cabecera_actual) {
-        window.open(`/pages/generar_pdf_notacobranza.php?id=${id_cabecera_actual}`, '_blank');
+    if (confirm('¿Eliminar este ítem?')) {
+        fetch('/pages/notacobranza_logic.php', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'eliminar_detalle', id_detalle: id }),
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Ítem eliminado.');
+                if (id_cabecera_actual) cargarDetallesNC(id_cabecera_actual);
+            } else {
+                alert('❌ ' + data.message);
+            }
+        });
     }
 }
 </script>
