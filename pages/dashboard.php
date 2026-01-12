@@ -283,7 +283,6 @@ document.addEventListener('click', function(e) {
 });
 
 // === GRÁFICO DE BARRAS ===
-<script>
 const ctx = document.getElementById('estadoChart').getContext('2d');
 new Chart(ctx, {
     type: 'bar',
