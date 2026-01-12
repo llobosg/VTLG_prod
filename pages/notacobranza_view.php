@@ -147,10 +147,13 @@ if (php_sapi_name() !== 'cli') {
 
             <!-- Fila 3 -->
             <div><strong>ESTADO:</strong></div>
-            <div class="valor-ficha" style="grid-column: span 5;"><?= htmlspecialchars($estado_rms) ?></div>
-            <div><strong>TOTAL REMESA:</strong></div>
-            <div class="valor-ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
-
+            <div class="valor-ficha"><?= htmlspecialchars($estado_rms) ?></div>
+            <div></div>
+            <div></div>
+            <div><strong>NRO.NC:</strong></div>
+            <div class="valor-ficha"><?= htmlspecialchars($nro_nc) ?></div>
+            <div><strong>FECHA VCTO.:</strong></div>
+            <div class="valor-ficha"><?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?></div>
             <!-- Fila 4 -->
             <div><strong>CONCEPTO:</strong></div>
             <div class="valor-ficha" style="grid-column: span 5;">
@@ -160,19 +163,17 @@ if (php_sapi_name() !== 'cli') {
                     style="width: 100%; padding: 0.3rem; font-size: 0.9rem; border: 1px solid #ddd; border-radius: 4px;"
                     <?= ($cabecera && (float)$cabecera['total_monto_nc'] > 0) ? 'readonly' : '' ?>>
             </div>
+            <div><strong>TOTAL REMESA:</strong></div>
+            <div class="valor-ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
+            <!-- Fila 5 -->
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
             <div><strong>TOTAL RENDICIÓN:</strong></div>
             <div class="valor-ficha" id="total_rendido_ficha">0</div>
-
-            <!-- Fila 5 -->
-            <div><strong>NRO.NC:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($nro_nc) ?></div>
-            <div><strong>FECHA VCTO.:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?></div>
-            <div></div>
-            <div></div>
-            <div><strong>NOTA COBRANZA:</strong></div>
-            <div class="valor-ficha" id="total_nota_ficha">0</div>
-
             <!-- Fila 6 -->
             <div><strong>A FAVOR DE:</strong></div>
             <div class="valor-ficha" id="afavor_ficha">OK</div>
@@ -180,8 +181,8 @@ if (php_sapi_name() !== 'cli') {
             <div class="valor-ficha" id="saldo_ficha">0</div>
             <div></div>
             <div></div>
-            <div></div>
-            <div></div>
+            <div><strong>NOTA COBRANZA:</strong></div>
+            <div class="valor-ficha" id="total_nota_ficha">0</div>
 
             <!-- Fila 7: Botón solo si es edición -->
             <div style="grid-column: span 8; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
