@@ -507,46 +507,61 @@ function actualizarTotales(rendiciones) {
     let totalCliente = 0;
     let totalAgencia = 0;
     rendiciones.forEach(r => {
-        if (r.concepto_rndcn) totalCliente += parseFloat(r.monto_pago_rndcn) || 0;
-        else totalAgencia += parseFloat(r.monto_gastos_agencia_rndcn) || 0;
+        if (r.concepto_rndcn) {
+            totalCliente += parseFloat(r.monto_pago_rndcn) || 0;
+        } else {
+            totalAgencia += parseFloat(r.monto_gastos_agencia_rndcn) || 0;
+        }
     });
 
     const netoAgencia = totalAgencia;
     const ivaAgencia = netoAgencia * 0.19;
     const totalGastosAgencia = netoAgencia + ivaAgencia;
-
-    // Obtener total_transferir desde la ficha
-    const totalTransferirText = document.querySelector('#cliente_ficha').closest('.card').innerHTML.match(/TOTAL TRANSFERIDO.+?(\d{1,3}(?:\.\d{3})*))/)?.[1] || '0';
-    const totalTransferir = parseFloat(totalTransferirText.replace(/\./g, '')) || 0;
     const totalRendicion = totalCliente + totalGastosAgencia;
+
+    // ✅ Extraer total_transferir desde el HTML (regex corregida)
+    let totalTransferir = 0;
+    try {
+        const fichaHTML = document.querySelector('#cliente_ficha').closest('.card').innerHTML;
+        const match = fichaHTML.match(/TOTAL TRANSFERIDO.+?(\d{1,3}(?:\.\d{3})*)/);
+        if (match && match[1]) {
+            totalTransferir = parseFloat(match[1].replace(/\./g, ''));
+        }
+    } catch (e) {
+        console.warn('No se pudo extraer total_transferir:', e);
+    }
+
     const saldo = totalTransferir - totalRendicion;
     const aFavor = saldo > 0 ? 'cliente' : (saldo < 0 ? 'agencia' : 'OK');
+
+    // Formatear números
+    const format = (num) => new Intl.NumberFormat('es-CL').format(Math.round(num));
 
     contenedor.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-weight: bold; font-size: 0.95rem;">
             <div style="display: flex; justify-content: space-between;">
                 <span>TOTAL CLIENTE:</span>
-                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(totalCliente)}</span>
+                <span style="color: #2c3e50;">${format(totalCliente)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>NETO AGENCIA:</span>
-                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(netoAgencia)}</span>
+                <span style="color: #2c3e50;">${format(netoAgencia)}</span>
             </div>
             <div></div>
             <div style="display: flex; justify-content: space-between;">
                 <span>IVA 19%:</span>
-                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(ivaAgencia)}</span>
+                <span style="color: #2c3e50;">${format(ivaAgencia)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>SALDO:</span>
                 <span style="color: ${saldo > 0 ? '#27ae60' : (saldo < 0 ? '#e74c3c' : '#3498db')};">
-                    ${new Intl.NumberFormat('es-CL').format(Math.abs(saldo))}
+                    ${format(Math.abs(saldo))}
                     ${aFavor !== 'OK' ? `(${aFavor})` : ''}
                 </span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>TOTAL GASTOS AGENCIA:</span>
-                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(totalGastosAgencia)}</span>
+                <span style="color: #2c3e50;">${format(totalGastosAgencia)}</span>
             </div>
         </div>
     `;
