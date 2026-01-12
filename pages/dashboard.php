@@ -283,14 +283,15 @@ document.addEventListener('click', function(e) {
 });
 
 // === GRÁFICO DE BARRAS ===
+<script>
 const ctx = document.getElementById('estadoChart').getContext('2d');
 new Chart(ctx, {
     type: 'bar',
-     {
+    data: {
         labels: <?= json_encode(array_values($estados_validos)) ?>,
         datasets: [{
             label: 'Monto Total ($)',
-             <?= json_encode(array_values($montos_por_estado)) ?>,
+            data: <?= json_encode(array_values($montos_por_estado)) ?>,
             backgroundColor: [
                 '#3498db', '#2ecc71', '#e74c3c', '#f39c12',
                 '#9b59b6', '#1abc9c', '#d35400', '#2c3e50'
