@@ -48,6 +48,7 @@ $stmt = $pdo->query("
     SELECT
         r.id_rms,
         r.fecha_rms,
+        r.mes_rms,
         r.estado_rms,
         c.nombre_clt AS cliente_nombre,
         r.total_transferir_rms
@@ -72,63 +73,76 @@ $clientes = $stmt->fetchAll();
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            border-left: 4px solid #3498db;
-        }
-        .stat-value {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 0.3rem 0;
-        }
-        .stat-label {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-        }
-        .search-box {
-            margin: 1.5rem 0;
-            position: relative;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 0.6rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .search-results {
-            position: absolute;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #ccc;
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-        }
-        .search-results div {
-            padding: 0.6rem;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-        .search-results div:hover {
-            background: #f1f1f1;
-        }
-        .chart-container {
-            height: 200px;
-            margin: 1.5rem 0;
-        }
-    </style>
+        <style>
+            .container {
+                max-width: 100%;
+                padding-left: 10%;
+                padding-right: 10%;
+            }
+            /* Asegurar que las fichas de estado siempre sean 4 por fila */
+            .stats-grid-estado {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .stat-card {
+                background: white;
+                border-radius: 8px;
+                padding: 1rem;
+                text-align: center;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                border-left: 4px solid #3498db;
+            }
+            .stat-value {
+                font-size: 1.4rem;
+                font-weight: bold;
+                color: #2c3e50;
+                margin: 0.3rem 0;
+            }
+            .stat-label {
+                font-size: 0.9rem;
+                color: #7f8c8d;
+            }
+            .search-box {
+                margin: 1.5rem 0;
+                position: relative;
+            }
+            .search-box input {
+                width: 100%;
+                padding: 0.6rem;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+            .search-results {
+                position: absolute;
+                z-index: 1000;
+                background: white;
+                border: 1px solid #ccc;
+                width: 100%;
+                max-height: 200px;
+                overflow-y: auto;
+                display: none;
+            }
+            .search-results div {
+                padding: 0.6rem;
+                cursor: pointer;
+                border-bottom: 1px solid #eee;
+            }
+            .search-results div:hover {
+                background: #f1f1f1;
+            }
+            .chart-container {
+                height: 200px;
+                margin: 1.5rem 0;
+            }
+        </style>
 </head>
 <body>
 <?php include '../includes/header.php'; ?>
@@ -140,7 +154,7 @@ $clientes = $stmt->fetchAll();
 
     <!-- === FICHAS POR ESTADO === -->
     <h3 style="margin-bottom: 0.8rem; font-weight: bold;">Estado de Solicitudes</h3>
-    <div class="stats-grid">
+    <div class="stats-grid-estado" style="grid-template-columns: repeat(8, 1fr);">
         <?php foreach ($estados_validos as $estado): ?>
         <div class="stat-card">
             <div class="stat-label"><?= htmlspecialchars($estado) ?></div>
@@ -194,7 +208,7 @@ $clientes = $stmt->fetchAll();
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>Mes</th>
                         <th>Fecha</th>
                         <th>Cliente</th>
                         <th>Estado</th>
@@ -203,24 +217,20 @@ $clientes = $stmt->fetchAll();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($ultimas_remesas)): ?>
-                        <tr><td colspan="6" style="text-align: center;">No hay remesas.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($ultimas_remesas as $r): ?>
-                        <tr>
-                            <td><?= $r['id_rms'] ?></td>
-                            <td><?= htmlspecialchars($r['fecha_rms']) ?></td>
-                            <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
-                            <td><?= htmlspecialchars($r['estado_rms']) ?></td>
-                            <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
-                            <td>
-                                <a href="/pages/remesa_view.php?edit=<?= $r['id_rms'] ?>" class="btn-primary" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                    <?php foreach ($ultimas_remesas as $r): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($r['mes_rms'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['fecha_rms']) ?></td>
+                        <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
+                        <td><?= htmlspecialchars($r['estado_rms']) ?></td>
+                        <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
+                        <td>
+                            <a href="/pages/remesa_view.php?edit=<?= $r['id_rms'] ?>" class="btn-primary" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
