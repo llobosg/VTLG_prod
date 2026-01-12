@@ -1,56 +1,25 @@
 <?php
-require_once __DIR__ . '/../session_check.php';
-require_once __DIR__ . '/../config.php';
+require_once '../session_check.php';
+require_once '../config.php';
+
+$rol = $_SESSION['rol'] ?? 'usuario';
+if ($rol !== 'admin' && $rol !== 'comercial') {
+    header('HTTP/1.1 403 Forbidden');
+    exit('Acceso denegado.');
+}
 
 // Evitar advertencias en producción
 if (php_sapi_name() !== 'cli') {
     error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 }
 
-$rol = $_SESSION['rol'] ?? 'usuario';
-$remesas = [];
+// === Modo edición: cargar remesa y conceptos ===
 $remesa_seleccionada = null;
 $conceptos_cliente = [];
 $conceptos_agencia = [];
 
-// === Modo 1: Listado general (sin parámetro) ===
-if (!isset($_GET['seleccionar'])) {
-    // Cargar solo en contexto web
-    if (php_sapi_name() !== 'cli') {
-        try {
-            $pdo = getDBConnection();
-            $stmt = $pdo->prepare("
-                SELECT 
-                    r.id_rms,
-                    r.fecha_rms,
-                    r.despacho_rms,
-                    r.ref_clte_rms,
-                    r.total_transferir_rms,
-                    r.estado_rms,
-                    c.nombre_clt AS cliente_nombre,
-                    m.mercancia_mrcc AS mercancia_nombre,
-                    COALESCE(SUM(rend.monto_pago_rndcn), 0) AS total_cliente,
-                    COALESCE(SUM(rend.monto_gastos_agencia_rndcn), 0) AS total_agencia
-                FROM remesa r
-                LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-                LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-                LEFT JOIN rendicion rend ON r.id_rms = rend.id_rms
-                WHERE r.estado_rms = 'solicitada'
-                GROUP BY r.id_rms
-                HAVING COUNT(rend.id_rendicion) > 0
-                ORDER BY r.fecha_rms DESC
-            ");
-            $stmt->execute();
-            $remesas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Throwable $e) {
-            error_log('Error en rendicion_view (listado): ' . $e->getMessage());
-            $remesas = [];
-        }
-    }
-}
-// === Modo 2: Edición de rendición (con ?seleccionar=ID) ===
-else {
-    $id_rms = (int)($_GET['seleccionar'] ?? 0);
+if (isset($_GET['seleccionar'])) {
+    $id_rms = (int)$_GET['seleccionar'];
     if ($id_rms > 0 && php_sapi_name() !== 'cli') {
         try {
             $pdo = getDBConnection();
@@ -70,18 +39,18 @@ else {
             $remesa_seleccionada = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($remesa_seleccionada) {
-                // Cargar conceptos cliente (donde concepto_rndcn NO es NULL)
+                // Conceptos cliente
                 $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND concepto_rndcn IS NOT NULL ORDER BY id_rndcn");
                 $stmt->execute([$id_rms]);
                 $conceptos_cliente = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                // Cargar conceptos agencia (donde concepto_agencia_rndcn NO es NULL)
+                // Conceptos agencia
                 $stmt = $pdo->prepare("SELECT * FROM rendicion WHERE id_rms = ? AND concepto_agencia_rndcn IS NOT NULL ORDER BY id_rndcn");
                 $stmt->execute([$id_rms]);
                 $conceptos_agencia = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         } catch (Throwable $e) {
-            error_log('Error en rendicion_view (edición): ' . $e->getMessage());
+            error_log("Error en rendicion_view (edición): " . $e->getMessage());
             $remesa_seleccionada = null;
         }
     }
@@ -95,82 +64,60 @@ else {
     <title>Rendición de Gastos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
+    <style>
+        .valor-ficha { color: #2c3e50; }
+        #resultados-busqueda {
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            max-height: 200px;
+            overflow-y: auto;
+            width: calc(100% - 2rem);
+            margin-top: 0.2rem;
+        }
+    </style>
 </head>
 <body>
-
-<?php include __DIR__ . '/../includes/header.php'; ?>
+<?php include '../includes/header.php'; ?>
 
 <div class="container">
     <?php if (!isset($_GET['seleccionar'])): ?>
-        <!-- === MODO LISTADO === -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
-            <h2 style="font-weight:bold; display:flex; align-items:center; gap:0.5rem;">
+        <!-- === MODO SELECCIÓN DE REMESA === -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+            <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
                 <i class="fas fa-receipt"></i> Rendición de Gastos
             </h2>
-            <!-- Botón eliminado porque no aplica en listado -->
+            <a href="/pages/rendicion_listas.php" class="btn-secondary" style="padding: 0.4rem 0.8rem;">
+                <i class="fas fa-arrow-left"></i> Volver a Lista
+            </a>
         </div>
 
-        <div class="card">
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Despacho</th>
-                            <th>Ref.Clte.</th>
-                            <th>Mercancía</th>
-                            <th>Fondos Transferidos</th>
-                            <th>Total Liquidación</th>
-                            <th>Saldo</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php if (empty($remesas)): ?>
-                        <tr>
-                            <td colspan="8" style="text-align:center;">No hay rendiciones registradas.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($remesas as $r):
-                            $totalCliente = (float)$r['total_cliente'];
-                            $totalAgencia = (float)$r['total_agencia'];
-                            $ivaAgencia = $totalAgencia * 0.19;
-                            $totalLiquidacion = $totalCliente + $totalAgencia + $ivaAgencia;
-                            $saldo = (float)$r['total_transferir_rms'] - $totalLiquidacion;
-                        ?>
-                        <tr>
-                            <td><?= htmlspecialchars($r['cliente_nombre'] ?? '–') ?></td>
-                            <td><?= htmlspecialchars($r['despacho_rms'] ?? '–') ?></td>
-                            <td><?= htmlspecialchars($r['ref_clte_rms'] ?? '–') ?></td>
-                            <td><?= htmlspecialchars($r['mercancia_nombre'] ?? '–') ?></td>
-                            <td><?= number_format($r['total_transferir_rms'], 0, ',', '.') ?></td>
-                            <td><?= number_format($totalLiquidacion, 0, ',', '.') ?></td>
-                            <td style="color:<?= $saldo > 0 ? '#2980b9' : '#e74c3c' ?>;">
-                                <?= number_format(abs($saldo), 0, ',', '.') ?>
-                                <?= $saldo > 0 ? ' (cliente)' : ' (agencia)' ?>
-                            </td>
-                            <td>
-                                <a href="/pages/rendicion_view.php?seleccionar=<?= (int)$r['id_rms'] ?>" class="btn-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="/pages/generar_pdf_rendicion.php?id=<?= (int)$r['id_rms'] ?>" target="_blank" class="btn-comment">
-                                    <i class="fas fa-file-pdf"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin: 0 0 1rem 0; font-weight: bold;">Seleccionar Remesa para Rendir</h3>
+            <div style="display: flex; gap: 0.8rem; margin-bottom: 1rem;">
+                <input type="text" 
+                    id="busqueda-inteligente" 
+                    placeholder="Buscar por cliente, ref. clte, mercancía..." 
+                    style="flex: 1; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px;">
+                <button class="btn-primary" onclick="buscarRemesa()">Buscar</button>
             </div>
+            <div id="resultados-busqueda" style="display: none;"></div>
         </div>
+
+        <!-- Ficha y tabla (iniciales ocultos) -->
+        <div id="ficha-remesa" class="card" style="display: none; margin-bottom: 1.5rem;"></div>
+        <div id="tabla-conceptos-wrapper" style="display: none;"></div>
+        <button id="btn-pdf-rendicion" class="btn-secondary" onclick="generarPDFRendicion()" style="display: none; margin-top: 1rem;">
+            <i class="fas fa-file-pdf"></i> Generar PDF Rendición
+        </button>
 
     <?php else: ?>
         <!-- === MODO EDICIÓN === -->
         <?php if (!$remesa_seleccionada): ?>
             <div class="card" style="text-align: center; padding: 2rem;">
                 <p>❌ No se encontró la remesa seleccionada.</p>
-                <a href="/pages/rendicion_view.php" class="btn-secondary" style="margin-top: 1rem;">Volver a Lista</a>
+                <a href="/pages/rendicion_view.php" class="btn-secondary" style="margin-top: 1rem;">Seleccionar otra remesa</a>
             </div>
         <?php else: ?>
             <!-- Ficha de Remesa -->
@@ -192,20 +139,12 @@ else {
 
                     <div><strong>TOTAL TRANSFERIDO:</strong></div>
                     <div class="valor-ficha"><?= number_format($remesa_seleccionada['total_transferir_rms'] ?? 0, 0, ',', '.') ?></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
                 </div>
             </div>
 
-            <!-- Botones de acción -->
+            <!-- Botones -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; align-items: center;">
-                <h3 style="font-weight: bold; margin: 0;">
-                    <i class="fas fa-list"></i> Conceptos Registrados
-                </h3>
+                <h3 style="font-weight: bold; margin: 0;"><i class="fas fa-list"></i> Conceptos Registrados</h3>
                 <button class="btn-primary" onclick="abrirSubmodalRendicion()">
                     <i class="fas fa-plus"></i> Agregar Concepto
                 </button>
@@ -268,7 +207,7 @@ else {
                     </table>
                 </div>
 
-                <!-- TOTALES (simple) -->
+                <!-- TOTALES -->
                 <div id="contenedor-totales" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
                     <?php
                     $totalCliente = array_sum(array_column($conceptos_cliente, 'monto_pago_rndcn'));
@@ -322,7 +261,6 @@ else {
         <input type="hidden" id="id_rendicion_edicion">
         <input type="hidden" id="id_rms_rendicion" value="<?= isset($_GET['seleccionar']) ? (int)$_GET['seleccionar'] : '0' ?>">
 
-        <!-- Selector de grupo -->
         <div style="margin-bottom: 1.4rem; display: flex; gap: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.8rem;">
             <label style="display: flex; align-items: center; gap: 0.4rem;">
                 <input type="radio" name="grupo" value="cliente" checked> Gastos Cuenta Cliente
@@ -336,10 +274,7 @@ else {
         <div id="grupo-cliente">
             <div style="display: grid; grid-template-columns: 120px 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
                 <label>Concepto:</label>
-                <input type="text" 
-                    id="concepto_rndcn" 
-                    list="conceptos-cliente" 
-                    style="height: 2.0rem; text-transform: uppercase;">
+                <input type="text" id="concepto_rndcn" list="conceptos-cliente" style="height: 2.0rem; text-transform: uppercase;">
                 <datalist id="conceptos-cliente">
                     <option value="GASTOS AGA">
                     <option value="HONORARIOS">
@@ -372,10 +307,7 @@ else {
         <div id="grupo-agencia" style="display: none;">
             <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
                 <label>Concepto Agencia:</label>
-                <input type="text" 
-                    id="concepto_agencia_rndcn" 
-                    list="conceptos-agencia" 
-                    style="height: 2.0rem; text-transform: uppercase;">
+                <input type="text" id="concepto_agencia_rndcn" list="conceptos-agencia" style="height: 2.0rem; text-transform: uppercase;">
                 <datalist id="conceptos-agencia">
                     <option value="HONORARIOS">
                     <option value="GASTOS DESPACHO">
@@ -397,7 +329,6 @@ else {
             </div>
         </div>
 
-        <!-- Botones -->
         <div style="text-align: right; margin-top: 1.6rem; display: flex; gap: 0.8rem; justify-content: flex-end;">
             <button type="button" class="btn-primary" onclick="guardarRendicion()" style="padding: 0.55rem 1.4rem;">
                 <i class="fas fa-save"></i> <span id="btn-texto">Guardar Concepto</span>
@@ -426,60 +357,202 @@ else {
 let id_rms_actual = <?= isset($_GET['seleccionar']) ? (int)$_GET['seleccionar'] : 'null' ?>;
 let id_rendicion_a_eliminar = null;
 
-// === Cargar datos de un concepto ya existente (vía fetch a la BD) ===
-function cargarConceptoParaEdicion(id) {
-    fetch(`/pages/rendicion_logic.php?action=obtener&id=${id}`)
+// === BÚSQUEDA INTELIGENTE (modo selección) ===
+function buscarRemesa() {
+    const term = document.getElementById('busqueda-inteligente').value.trim();
+    if (!term) return;
+    fetch(`/api/buscar_remesas.php?term=${encodeURIComponent(term)}`)
         .then(res => res.json())
         .then(data => {
-            if (!data || data.success === false) {
-                alert('❌ No se pudo cargar el concepto.');
-                return;
+            const div = document.getElementById('resultados-busqueda');
+            div.innerHTML = '';
+            if (data.length > 0) {
+                data.forEach(r => {
+                    const d = document.createElement('div');
+                    d.style.padding = '0.8rem';
+                    d.style.cursor = 'pointer';
+                    d.style.borderBottom = '1px solid #eee';
+                    d.innerHTML = `<strong>${r.cliente_nombre || 'ID: ' + r.cliente_rms}</strong><br>
+                                  <small>
+                                    Mercancía: ${r.mercancia_nombre || '–'} | 
+                                    Ref.Clte: ${r.ref_clte_rms || '–'} | 
+                                    Fecha: ${r.fecha_rms}
+                                  </small>`;
+                    d.onclick = () => {
+                        cargarFichaRemesa(r.id_rms);
+                        div.style.display = 'none';
+                    };
+                    div.appendChild(d);
+                });
+                div.style.display = 'block';
             }
-
-            // Determinar tipo
-            const tipo = data.concepto_rndcn ? 'cliente' : 'agencia';
-            document.getElementById('id_rendicion_edicion').value = data.id_rndcn;
-            document.getElementById('id_rms_rendicion').value = data.id_rms;
-
-            // Ajustar UI por tipo
-            const grupoCliente = document.getElementById('grupo-cliente');
-            const grupoAgencia = document.getElementById('grupo-agencia');
-            const titulo = document.getElementById('submodal-titulo');
-            const btnTexto = document.getElementById('btn-texto');
-
-            if (tipo === 'cliente') {
-                document.querySelector('input[value="cliente"]').checked = true;
-                grupoCliente.style.display = 'block';
-                grupoAgencia.style.display = 'none';
-                titulo.innerText = 'Editar Concepto (Cliente)';
-                btnTexto.innerText = 'Actualizar Cliente';
-
-                document.getElementById('concepto_rndcn').value = data.concepto_rndcn || '';
-                document.getElementById('nro_documento_rndcn').value = data.nro_documento_rndcn || '';
-                document.getElementById('fecha_pago_rndcn').value = data.fecha_rndcn || '';
-                document.getElementById('monto_pago_rndcn').value = data.monto_pago_rndcn || '';
-            } else {
-                document.querySelector('input[value="agencia"]').checked = true;
-                grupoCliente.style.display = 'none';
-                grupoAgencia.style.display = 'block';
-                titulo.innerText = 'Editar Concepto (Agencia)';
-                btnTexto.innerText = 'Actualizar Agencia';
-
-                document.getElementById('concepto_agencia_rndcn').value = data.concepto_agencia_rndcn || '';
-                document.getElementById('nro_documento_rndcn_agencia').value = data.nro_documento_rndcn || '';
-                document.getElementById('fecha_pago_rndcn_agencia').value = data.fecha_rndcn || '';
-                document.getElementById('monto_gastos_agencia_rndcn').value = data.monto_gastos_agencia_rndcn || '';
-            }
-
-            document.getElementById('submodal-rendicion').style.display = 'flex';
         })
         .catch(err => {
-            console.error('Error al cargar concepto:', err);
-            alert('❌ Error al cargar el concepto para edición.');
+            console.error('Error en búsqueda:', err);
         });
 }
 
-// === SUBMODAL: alternar grupos ===
+// === CARGAR FICHA DESDE API ===
+function cargarFichaRemesa(id_rms) {
+    fetch(`/api/get_remesa.php?id=${id_rms}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data) return;
+
+            // Crear ficha dinámica
+            const ficha = `
+                <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
+                    <div><strong>CLIENTE:</strong></div>
+                    <div class="valor-ficha" id="cliente_ficha" style="grid-column: span 3;">${data.cliente_nombre || '–'}</div>
+                    <div><strong>Rut:</strong></div>
+                    <div class="valor-ficha">${data.rut_clt || '–'}</div>
+                    <div><strong>FECHA:</strong></div>
+                    <div class="valor-ficha">${data.fecha_rms || '–'}</div>
+
+                    <div><strong>DESPACHO:</strong></div>
+                    <div class="valor-ficha">${data.despacho_rms || '–'}</div>
+                    <div><strong>REF.CLTE.:</strong></div>
+                    <div class="valor-ficha">${data.ref_clte_rms || '–'}</div>
+                    <div><strong>MERCANCÍA:</strong></div>
+                    <div class="valor-ficha" style="grid-column: span 2;">${data.mercancia_nombre || '–'}</div>
+
+                    <div><strong>TOTAL TRANSFERIDO:</strong></div>
+                    <div class="valor-ficha">${new Intl.NumberFormat('es-CL').format(data.total_transferir_rms || 0)}</div>
+                </div>
+            `;
+            document.getElementById('ficha-remesa').innerHTML = ficha;
+            document.getElementById('ficha-remesa').style.display = 'block';
+
+            // Mostrar botones y tabla vacía
+            const tabla = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; align-items: center;">
+                    <h3 style="font-weight: bold; margin: 0;"><i class="fas fa-list"></i> Conceptos Registrados</h3>
+                    <button class="btn-primary" onclick="abrirSubmodalRendicion()">
+                        <i class="fas fa-plus"></i> Agregar Concepto
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th><th>Concepto</th><th>Nro. Doc</th><th>Fecha</th><th>Monto</th><th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-rendiciones">
+                                <tr><td colspan="6" style="text-align: center;">Sin conceptos registrados.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="contenedor-totales" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;"></div>
+                </div>
+            `;
+            document.getElementById('tabla-conceptos-wrapper').innerHTML = tabla;
+            document.getElementById('tabla-conceptos-wrapper').style.display = 'block';
+            document.getElementById('btn-pdf-rendicion').style.display = 'inline-block';
+
+            id_rms_actual = id_rms;
+            document.getElementById('id_rms_rendicion').value = id_rms;
+
+            // Cargar conceptos reales (si existen)
+            cargarRendiciones(id_rms);
+        });
+}
+
+// === CARGAR RENDICIONES DESDE API ===
+function cargarRendiciones(id_rms) {
+    fetch(`/api/get_rendiciones.php?id=${id_rms}`)
+        .then(res => res.json())
+        .then(rendiciones => {
+            const tbody = document.getElementById('lista-rendiciones');
+            if (!tbody) return;
+            if (rendiciones.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Sin conceptos registrados.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rendiciones.map(r => {
+                const tipo = r.concepto_rndcn ? 'Cliente' : 'Agencia';
+                const concepto = r.concepto_rndcn || r.concepto_agencia_rndcn || '–';
+                const monto = r.concepto_rndcn ? parseFloat(r.monto_pago_rndcn) : parseFloat(r.monto_gastos_agencia_rndcn) * 1.19;
+                return `
+                    <tr>
+                        <td>${tipo}</td>
+                        <td>${concepto}</td>
+                        <td>${r.nro_documento_rndcn || '-'}</td>
+                        <td>${r.fecha_rndcn || '-'}</td>
+                        <td>${new Intl.NumberFormat('es-CL').format(monto)}</td>
+                        <td>
+                            <a href="#" class="btn-edit" title="Editar" onclick="editarRendicion(${r.id_rndcn}, '${tipo === 'Cliente' ? 'cliente' : 'agencia'}')">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(${r.id_rndcn})">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Actualizar totales
+            actualizarTotales(rendiciones);
+        });
+}
+
+// === ACTUALIZAR TOTALES ===
+function actualizarTotales(rendiciones) {
+    const contenedor = document.getElementById('contenedor-totales');
+    if (!contenedor) return;
+
+    let totalCliente = 0;
+    let totalAgencia = 0;
+    rendiciones.forEach(r => {
+        if (r.concepto_rndcn) totalCliente += parseFloat(r.monto_pago_rndcn) || 0;
+        else totalAgencia += parseFloat(r.monto_gastos_agencia_rndcn) || 0;
+    });
+
+    const netoAgencia = totalAgencia;
+    const ivaAgencia = netoAgencia * 0.19;
+    const totalGastosAgencia = netoAgencia + ivaAgencia;
+
+    // Obtener total_transferir desde la ficha
+    const totalTransferirText = document.querySelector('#cliente_ficha').closest('.card').innerHTML.match(/TOTAL TRANSFERIDO.+?(\d{1,3}(?:\.\d{3})*))/)?.[1] || '0';
+    const totalTransferir = parseFloat(totalTransferirText.replace(/\./g, '')) || 0;
+    const totalRendicion = totalCliente + totalGastosAgencia;
+    const saldo = totalTransferir - totalRendicion;
+    const aFavor = saldo > 0 ? 'cliente' : (saldo < 0 ? 'agencia' : 'OK');
+
+    contenedor.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-weight: bold; font-size: 0.95rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <span>TOTAL CLIENTE:</span>
+                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(totalCliente)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>NETO AGENCIA:</span>
+                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(netoAgencia)}</span>
+            </div>
+            <div></div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>IVA 19%:</span>
+                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(ivaAgencia)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>SALDO:</span>
+                <span style="color: ${saldo > 0 ? '#27ae60' : (saldo < 0 ? '#e74c3c' : '#3498db')};">
+                    ${new Intl.NumberFormat('es-CL').format(Math.abs(saldo))}
+                    ${aFavor !== 'OK' ? `(${aFavor})` : ''}
+                </span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>TOTAL GASTOS AGENCIA:</span>
+                <span style="color: #2c3e50;">${new Intl.NumberFormat('es-CL').format(totalGastosAgencia)}</span>
+            </div>
+        </div>
+    `;
+}
+
+// === SUBMODAL: funciones generales ===
 document.querySelectorAll('input[name="grupo"]').forEach(radio => {
     radio.addEventListener('change', function() {
         if (this.value === 'cliente') {
@@ -495,10 +568,9 @@ document.querySelectorAll('input[name="grupo"]').forEach(radio => {
     });
 });
 
-// === Abrir submodal para NUEVO concepto ===
 function abrirSubmodalRendicion() {
     if (!id_rms_actual) {
-        alert('Error: ID de remesa no disponible.');
+        alert('Seleccione una remesa primero.');
         return;
     }
     document.getElementById('id_rendicion_edicion').value = '';
@@ -511,26 +583,67 @@ function abrirSubmodalRendicion() {
     document.getElementById('submodal-rendicion').style.display = 'flex';
 }
 
-// === Limpiar solo campos del formulario (sin cerrar) ===
 function limpiarFormRendicion() {
     document.getElementById('concepto_rndcn').value = '';
     document.getElementById('nro_documento_rndcn').value = '';
     document.getElementById('fecha_pago_rndcn').value = '';
     document.getElementById('monto_pago_rndcn').value = '';
-
     document.getElementById('concepto_agencia_rndcn').value = '';
     document.getElementById('nro_documento_rndcn_agencia').value = '';
     document.getElementById('fecha_pago_rndcn_agencia').value = '';
     document.getElementById('monto_gastos_agencia_rndcn').value = '';
 }
 
-
-// === Cerrar submodal manualmente ===
 function cerrarSubmodalRendicion() {
     document.getElementById('submodal-rendicion').style.display = 'none';
 }
 
-// === Guardar o actualizar concepto ===
+// === EDITAR: cargar desde API ===
+function editarRendicion(id, tipo) {
+    fetch(`/pages/rendicion_logic.php?action=obtener&id=${id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.success === false) {
+                alert('❌ No se pudo cargar el concepto.');
+                return;
+            }
+
+            document.getElementById('id_rendicion_edicion').value = data.id_rndcn;
+            document.getElementById('id_rms_rendicion').value = data.id_rms;
+
+            if (data.concepto_rndcn) {
+                document.querySelector('input[value="cliente"]').checked = true;
+                document.getElementById('grupo-cliente').style.display = 'block';
+                document.getElementById('grupo-agencia').style.display = 'none';
+                document.getElementById('submodal-titulo').innerText = 'Editar Concepto (Cliente)';
+                document.getElementById('btn-texto').innerText = 'Actualizar Cliente';
+
+                document.getElementById('concepto_rndcn').value = data.concepto_rndcn || '';
+                document.getElementById('nro_documento_rndcn').value = data.nro_documento_rndcn || '';
+                document.getElementById('fecha_pago_rndcn').value = data.fecha_rndcn || '';
+                document.getElementById('monto_pago_rndcn').value = data.monto_pago_rndcn || '';
+            } else {
+                document.querySelector('input[value="agencia"]').checked = true;
+                document.getElementById('grupo-cliente').style.display = 'none';
+                document.getElementById('grupo-agencia').style.display = 'block';
+                document.getElementById('submodal-titulo').innerText = 'Editar Concepto (Agencia)';
+                document.getElementById('btn-texto').innerText = 'Actualizar Agencia';
+
+                document.getElementById('concepto_agencia_rndcn').value = data.concepto_agencia_rndcn || '';
+                document.getElementById('nro_documento_rndcn_agencia').value = data.nro_documento_rndcn || '';
+                document.getElementById('fecha_pago_rndcn_agencia').value = data.fecha_rndcn || '';
+                document.getElementById('monto_gastos_agencia_rndcn').value = data.monto_gastos_agencia_rndcn || '';
+            }
+
+            document.getElementById('submodal-rendicion').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Error al cargar concepto:', err);
+            alert('❌ Error al cargar el concepto para edición.');
+        });
+}
+
+// === GUARDAR ===
 function guardarRendicion() {
     const formData = new FormData();
     const id_rendicion = document.getElementById('id_rendicion_edicion').value;
@@ -569,33 +682,29 @@ function guardarRendicion() {
         formData.append('monto_rendicion', document.getElementById('monto_gastos_agencia_rndcn').value || 0);
     }
 
-    fetch('/pages/rendicion_logic.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ Concepto guardado correctamente.');
-            // ✅ NO cerrar el submodal
-            // ✅ Recargar la tabla de conceptos
-            window.location.reload();
-        } else {
-            alert('❌ ' + (data.message || 'Error al guardar.'));
-        }
-    })
-    .catch(err => {
-        console.error('Error:', err);
-        alert('❌ Error de conexión.');
-    });
+    fetch('/pages/rendicion_logic.php', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Concepto guardado correctamente.');
+                if (!id_rendicion) {
+                    limpiarFormRendicion();
+                }
+                // Recargar tabla
+                if (id_rms_actual) {
+                    cargarRendiciones(id_rms_actual);
+                }
+            } else {
+                alert('❌ ' + (data.message || 'Error al guardar.'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('❌ Error de conexión.');
+        });
 }
 
-// === Editar: ahora carga datos reales ===
-function editarRendicion(id, tipo) {
-    cargarConceptoParaEdicion(id);
-}
-
-// === Eliminar (sin cambios) ===
+// === ELIMINAR ===
 function confirmarEliminar(id) {
     id_rendicion_a_eliminar = id;
     document.getElementById('modal-confirm').style.display = 'flex';
@@ -603,51 +712,51 @@ function confirmarEliminar(id) {
 
 function confirmarEliminarAction() {
     if (!id_rendicion_a_eliminar) return;
-    
     const formData = new FormData();
     formData.append('action', 'eliminar_rendicion');
     formData.append('id_rndcn', id_rendicion_a_eliminar);
 
-    fetch('/pages/rendicion_logic.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        cerrarModal();
-        if (data.success) {
-            alert('✅ Concepto eliminado.');
-            window.location.reload();
-        } else {
-            alert('❌ ' + (data.message || 'Error al eliminar.'));
-        }
-    })
-    .catch(err => {
-        cerrarModal();
-        console.error('Error:', err);
-        alert('❌ Error de conexión.');
-    });
+    fetch('/pages/rendicion_logic.php', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            cerrarModal();
+            if (data.success) {
+                alert('✅ Concepto eliminado.');
+                if (id_rms_actual) {
+                    cargarRendiciones(id_rms_actual);
+                }
+            } else {
+                alert('❌ ' + (data.message || 'Error al eliminar.'));
+            }
+        })
+        .catch(err => {
+            cerrarModal();
+            console.error('Error:', err);
+            alert('❌ Error de conexión.');
+        });
 }
 
 function cerrarModal() {
     document.getElementById('modal-confirm').style.display = 'none';
 }
 
-// Alternar grupos (sin cambios)
-document.querySelectorAll('input[name="grupo"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        if (this.value === 'cliente') {
-            document.getElementById('grupo-cliente').style.display = 'block';
-            document.getElementById('grupo-agencia').style.display = 'none';
-            document.getElementById('submodal-titulo').innerText = 'Agregar Concepto (Cliente)';
-        } else {
-            document.getElementById('grupo-cliente').style.display = 'none';
-            document.getElementById('grupo-agencia').style.display = 'block';
-            document.getElementById('submodal-titulo').innerText = 'Agregar Concepto (Agencia)';
-        }
-        limpiarFormRendicion();
-    });
+// Cerrar resultados de búsqueda
+document.addEventListener('click', function(e) {
+    const resultados = document.getElementById('resultados-busqueda');
+    const input = document.getElementById('busqueda-inteligente');
+    if (resultados && input && !resultados.contains(e.target) && e.target !== input) {
+        resultados.style.display = 'none';
+    }
 });
+
+// PDF
+function generarPDFRendicion() {
+    if (!id_rms_actual) {
+        alert('Seleccione una remesa primero.');
+        return;
+    }
+    window.open(`/pages/generar_pdf_rendicion.php?id=${id_rms_actual}`, '_blank');
+}
 </script>
 </body>
 </html>
