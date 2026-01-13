@@ -320,26 +320,25 @@ document.getElementById('montoneto_nc')?.addEventListener('input', function() {
 
 // === CREAR CABECERA NC (solo primera vez) ===
 function guardarCabeceraNC() {
-    const nro_nc_input = document.getElementById('nro_nc_input');
-    const fecha_vence = document.getElementById('fecha_vence_nc_input').value;
+    const fechaVence = document.getElementById('fecha_vence_nc_input').value;
     const concepto = document.getElementById('concepto_nc_input').value.trim();
     
-    if (!fecha_vence || !concepto) {
-        alert('❌ Fecha Vencimiento y Concepto son obligatorios.');
+    if (!fechaVence || !concepto) {
+        mostrarNotificacion('❌ Fecha Vencimiento y Concepto son obligatorios.', 'error');
         return;
     }
 
     // Calcular nro_nc = YYMMDD + id_rms
-    const today = new Date().toISOString().slice(2,10).replace(/-/g, '');
+    const today = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
     const nro_nc = today + <?= (int)$id_rms_para_rendicion ?>;
 
-    nro_nc_input.value = nro_nc;
+    document.getElementById('nro_nc_input').value = nro_nc;
 
     const formData = new FormData();
     formData.append('action', 'crear_cabecera');
     formData.append('id_rms', <?= (int)$id_rms_para_rendicion ?>);
     formData.append('nro_nc', nro_nc);
-    formData.append('fecha_vence_nc', fecha_vence);
+    formData.append('fecha_vence_nc', fechaVence);
     formData.append('concepto_nc', concepto);
 
     fetch('/pages/notacobranza_logic.php', {
@@ -349,15 +348,15 @@ function guardarCabeceraNC() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Nota de cobranza creada.');
+            mostrarNotificacion('✅ Cabecera de nota de cobranza creada.', 'success');
             window.location.href = `/pages/notacobranza_view.php?id=${data.id_cabecera}`;
         } else {
-            alert('❌ ' + data.message);
+            mostrarNotificacion('❌ ' + data.message, 'error');
         }
     })
     .catch(err => {
         console.error('Error:', err);
-        alert('❌ Error de conexión.');
+        mostrarNotificacion('❌ Error de conexión.', 'error');
     });
 }
 
