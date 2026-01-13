@@ -141,26 +141,45 @@ try {
         exit;
     }
 
-    // === ELIMINAR DETALLE ===
+    /* ===============================
+    ELIMINAR DETALLE DE NOTA COBRANZA
+    =============================== */
     if ($action === 'eliminar_detalle') {
-        if (!isset($_POST['id_detalle'])) {
-            echo json_encode(['success' => false, 'message' => 'ID de detalle requerido.']);
+        if (empty($_POST['id_detalle']) || !is_numeric($_POST['id_detalle'])) {
+            echo json_encode(['success' => false, 'message' => 'ID de ítem inválido.']);
             exit;
         }
 
-        $stmt = $pdo->prepare("SELECT id_cabecera FROM detalle_nc WHERE id_detalle = ?");
-        $stmt->execute([$_POST['id_detalle']]);
-        $id_cabecera = $stmt->fetchColumn();
+        $id_detalle = (int)$_POST['id_detalle'];
 
-        if (!$id_cabecera) {
-            echo json_encode(['success' => false, 'message' => 'Detalle no encontrado.']);
+        try {
+            // Eliminar el detalle
+            $pdo->prepare("DELETE FROM detalle_nc WHERE id_detalle = ?")->execute([$id_detalle]);
+
+            // Actualizar total en cabecera
+            $stmt = $pdo->prepare("
+                UPDATE notacobranza 
+                SET total_monto_nc = (
+                    SELECT COALESCE(SUM(monto_detalle), 0) 
+                    FROM detalle_nc 
+                    WHERE id_cabecera = (
+                        SELECT id_cabecera FROM detalle_nc WHERE id_detalle = ?
+                    )
+                )
+                WHERE id_cabecera = (
+                    SELECT id_cabecera FROM detalle_nc WHERE id_detalle = ?
+                )
+            ");
+            $stmt->execute([$id_detalle, $id_detalle]);
+
+            echo json_encode(['success' => true, 'message' => 'Ítem eliminado correctamente.']);
+            exit;
+
+        } catch (Exception $e) {
+            error_log("Error en eliminar_detalle: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar el ítem.']);
             exit;
         }
-
-        $pdo->prepare("DELETE FROM detalle_nc WHERE id_detalle = ?")->execute([$_POST['id_detalle']]);
-        actualizarTotalesCabecera($id_cabecera, $pdo);
-        echo json_encode(['success' => true]);
-        exit;
     }
 
     // === ACTUALIZAR CONCEPTO CABECERA ===

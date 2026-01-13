@@ -479,10 +479,13 @@ function cerrarSubmodalNC() {
 
 function confirmarEliminar(id) {
     if (confirm('¿Eliminar este ítem?')) {
+        const formData = new FormData();
+        formData.append('action', 'eliminar_detalle');
+        formData.append('id_detalle', id);
+
         fetch('/pages/notacobranza_logic.php', {
             method: 'POST',
-            body: JSON.stringify({ action: 'eliminar_detalle', id_detalle: id }),
-            headers: { 'Content-Type': 'application/json' }
+            body: formData  // ← Sin headers, FormData lo maneja
         })
         .then(r => r.json())
         .then(data => {
@@ -492,6 +495,10 @@ function confirmarEliminar(id) {
             } else {
                 alert('❌ ' + data.message);
             }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('❌ Error de conexión.');
         });
     }
 }
