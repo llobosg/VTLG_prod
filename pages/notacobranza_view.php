@@ -622,8 +622,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     }, 3000);
 }
 
-<?php if (!$id_cabecera): ?>
-<script>
+// === BÚSQUEDA INTELIGENTE (solo si estamos en modo creación) ===
 (function() {
     const input = document.getElementById('busqueda-inteligente');
     if (!input) return;
@@ -673,7 +672,6 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
         }, 300);
     });
 
-    // Cerrar resultados al hacer clic fuera
     document.addEventListener('click', function(e) {
         const resultados = document.getElementById('resultados-busqueda');
         if (resultados && !resultados.contains(e.target) && e.target !== input) {
@@ -681,8 +679,6 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
         }
     });
 })();
-</script>
-<?php endif; ?>
 
 </script>
 </body>
