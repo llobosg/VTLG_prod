@@ -343,15 +343,22 @@ function guardarCabeceraNC() {
         return;
     }
 
+    // Obtener id_rms (de selección o de PHP)
+    const id_rms = window.id_rms_seleccionado || <?= (int)$id_rms_para_rendicion ?>;
+    if (!id_rms) {
+        mostrarNotificacion('❌ No se ha seleccionado una remesa.', 'error');
+        return;
+    }
+
     // Calcular nro_nc = YYMMDD + id_rms
-    const today = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
-    const nro_nc = today + <?= (int)$id_rms_para_rendicion ?>;
+    const today = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+    const nro_nc = today + id_rms;
 
     document.getElementById('nro_nc_input').value = nro_nc;
 
     const formData = new FormData();
     formData.append('action', 'crear_cabecera');
-    formData.append('id_rms', <?= (int)$id_rms_para_rendicion ?>);
+    formData.append('id_rms', id_rms);
     formData.append('nro_nc', nro_nc);
     formData.append('fecha_vence_nc', fechaVence);
     formData.append('concepto_nc', concepto);
@@ -666,7 +673,38 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
                                         Fecha: ${r.fecha_rms}
                                       </small>`;
                         el.onclick = () => {
-                            crearNotaCobranza(r.id_rms);
+                            // Cargar remesa sin crear NC
+                            fetch(`/api/get_remesa.php?id=${r.id_rms}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (!data) {
+                                        alert('❌ No se pudo cargar la remesa.');
+                                        return;
+                                    }
+
+                                    // Mostrar ficha
+                                    document.getElementById('ficha-remesa').style.display = 'block';
+
+                                    // Rellenar campos
+                                    document.getElementById('cliente_ficha').innerText = data.cliente_nombre || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(4)').innerText = data.contacto_rms || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(6)').innerText = data.fecha_rms || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(9)').innerText = data.ref_clte_rms || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(11)').innerText = data.despacho_rms || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(12)').innerText = data.mes_rms || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(14)').innerText = data.estado_rms || '–';
+                                    document.querySelector('#ficha-remesa > div:nth-child(20)').innerText = new Intl.NumberFormat('es-CL').format(data.total_transferir_rms);
+
+                                    // Guardar id_rms global
+                                    window.id_rms_seleccionado = data.id_rms;
+
+                                    // Cargar total rendido
+                                    cargarTotalRendiciones(data.id_rms, data.total_transferir_rms);
+                                })
+                                .catch(err => {
+                                    console.error('Error:', err);
+                                    alert('❌ Error al cargar la remesa.');
+                                });
                             div.style.display = 'none';
                             this.value = '';
                         };
@@ -688,6 +726,41 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
         }
     });
 })();
+
+// === CARGAR REMESA SELECCIONADA (sin crear NC) ===
+function cargarRemesaSeleccionada(id_rms) {
+    fetch(`/api/get_remesa.php?id=${id_rms}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data) {
+                alert('❌ No se pudo cargar la remesa.');
+                return;
+            }
+
+            // Actualizar la ficha visualmente
+            document.getElementById('cliente_ficha').innerText = data.cliente_nombre || '–';
+            document.querySelector('#ficha-remesa div:nth-child(4)').innerText = data.contacto_clt || '–';
+            document.querySelector('#ficha-remesa div:nth-child(6)').innerText = data.fecha_rms || '–';
+            document.querySelector('#ficha-remesa div:nth-child(9)').innerText = data.ref_clte_rms || '–';
+            document.querySelector('#ficha-remesa div:nth-child(11)').innerText = data.despacho_rms || '–';
+            document.querySelector('#ficha-remesa div:nth-child(12)').innerText = data.mes_rms || '–';
+            document.querySelector('#ficha-remesa div:nth-child(14)').innerText = data.estado_rms || '–';
+            document.querySelector('#ficha-remesa div:nth-child(20)').innerText = new Intl.NumberFormat('es-CL').format(data.total_transferir_rms || 0);
+
+            // Mostrar la ficha
+            document.getElementById('ficha-remesa').style.display = 'block';
+
+            // Guardar id_rms global
+            window.id_rms_seleccionado = id_rms;
+
+            // Cargar total rendido
+            cargarTotalRendiciones(id_rms, data.total_transferir_rms);
+        })
+        .catch(err => {
+            console.error('Error al cargar remesa:', err);
+            alert('❌ Error al cargar la remesa.');
+        });
+}
 
 </script>
 </body>
