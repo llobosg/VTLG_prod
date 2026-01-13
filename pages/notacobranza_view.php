@@ -185,11 +185,11 @@ if (php_sapi_name() !== 'cli') {
                             border: 1px solid #ccc; border-radius: 4px; background-color: white;">
                 <?php endif; ?>
             </div>
-            <div><strong>TOTAL REMESA:</strong></div>
-            <div class="valor-ficha" id="total_remesa_ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
+            <div></div>
+            <div></div>
+            <div></div>
 
             <!-- Fila 5 -->
-            <div></div>
             <div></div>
             <div style="grid-column: span 3; display: flex; justify-content: flex-end;">
                 <?php if (!$id_cabecera): ?>
@@ -199,10 +199,21 @@ if (php_sapi_name() !== 'cli') {
                 <?php endif; ?>
             </div>
             <div></div>
-            <div><strong>TOTAL RENDICIÓN:</strong></div>
-            <div class="valor-ficha" id="total_rendido_ficha">0</div>
+            <div></div>
+            <div><strong>TOTAL REMESA:</strong></div>
+            <div class="valor-ficha" id="total_remesa_ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
 
             <!-- Fila 6 -->
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div><strong>TOTAL RENDICIÓN:</strong></div>
+            <div class="valor-ficha" id="total_rendido_ficha">0</div>
+            
+            <!-- Fila 7 -->
             <div><strong>A FAVOR DE:</strong></div>
             <div class="valor-ficha" id="afavor_ficha">OK</div>
             <div><strong>SALDO:</strong></div>
