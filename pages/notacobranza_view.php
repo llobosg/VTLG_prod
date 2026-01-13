@@ -115,65 +115,6 @@ if (php_sapi_name() !== 'cli') {
         </div>
     </div>
 
-    <script>
-    // === BÚSQUEDA INTELIGENTE (solo en modo nueva nota) ===
-    document.getElementById('busqueda-inteligente').addEventListener('input', function() {
-        const term = this.value.trim();
-        const div = document.getElementById('resultados-busqueda');
-        div.style.display = 'none';
-        div.innerHTML = '';
-
-        if (term.length < 2) return;
-
-        // Debounce simple
-        clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-            fetch(`/api/buscar_remesas.php?term=${encodeURIComponent(term)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (!Array.isArray(data)) {
-                        console.error('Respuesta inválida de API:', data);
-                        return;
-                    }
-                    if (data.length === 0) return;
-
-                    data.forEach(r => {
-                        const el = document.createElement('div');
-                        el.style.padding = '0.8rem';
-                        el.style.cursor = 'pointer';
-                        el.style.borderBottom = '1px solid #eee';
-                        el.innerHTML = `<strong>${r.cliente_nombre || 'ID: ' + r.cliente_rms}</strong><br>
-                                    <small>
-                                        Mercancía: ${r.mercancia_nombre || '–'} | 
-                                        Ref.Clte: ${r.ref_clte_rms || '–'} | 
-                                        Fecha: ${r.fecha_rms}
-                                    </small>`;
-                        el.onclick = () => {
-                            crearNotaCobranza(r.id_rms);
-                            div.style.display = 'none';
-                            this.value = '';
-                        };
-                        div.appendChild(el);
-                    });
-                    div.style.display = 'block';
-                })
-                .catch(err => {
-                    console.error('Error en búsqueda:', err);
-                    alert('❌ Error al buscar remesas.');
-                });
-        }, 300);
-    });
-
-    // Cerrar resultados al hacer clic fuera
-    document.addEventListener('click', function(e) {
-        const resultados = document.getElementById('resultados-busqueda');
-        const input = document.getElementById('busqueda-inteligente');
-        if (resultados && !resultados.contains(e.target) && e.target !== input) {
-            resultados.style.display = 'none';
-        }
-    });
-    </script>
-
     <!-- Ficha de Nota de Cobranza -->
     <div id="ficha-remesa" style="display: <?= $id_cabecera ? 'block' : 'none' ?>;" class="card" style="margin-bottom: 1.5rem;">
         <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
@@ -362,6 +303,63 @@ let id_detalle_a_eliminar = null;
 const id_cabecera_actual = <?= (int)($id_cabecera ?? 0) ?>;
 const id_rms_actual = <?= (int)($id_rms_para_rendicion ?? 0) ?>;
 const total_transferir_valor = <?= (float)$total_transferir_rms ?>;
+
+    // === BÚSQUEDA INTELIGENTE (solo en modo nueva nota) ===
+    document.getElementById('busqueda-inteligente').addEventListener('input', function() {
+        const term = this.value.trim();
+        const div = document.getElementById('resultados-busqueda');
+        div.style.display = 'none';
+        div.innerHTML = '';
+
+        if (term.length < 2) return;
+
+        // Debounce simple
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            fetch(`/api/buscar_remesas.php?term=${encodeURIComponent(term)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!Array.isArray(data)) {
+                        console.error('Respuesta inválida de API:', data);
+                        return;
+                    }
+                    if (data.length === 0) return;
+
+                    data.forEach(r => {
+                        const el = document.createElement('div');
+                        el.style.padding = '0.8rem';
+                        el.style.cursor = 'pointer';
+                        el.style.borderBottom = '1px solid #eee';
+                        el.innerHTML = `<strong>${r.cliente_nombre || 'ID: ' + r.cliente_rms}</strong><br>
+                                    <small>
+                                        Mercancía: ${r.mercancia_nombre || '–'} | 
+                                        Ref.Clte: ${r.ref_clte_rms || '–'} | 
+                                        Fecha: ${r.fecha_rms}
+                                    </small>`;
+                        el.onclick = () => {
+                            crearNotaCobranza(r.id_rms);
+                            div.style.display = 'none';
+                            this.value = '';
+                        };
+                        div.appendChild(el);
+                    });
+                    div.style.display = 'block';
+                })
+                .catch(err => {
+                    console.error('Error en búsqueda:', err);
+                    alert('❌ Error al buscar remesas.');
+                });
+        }, 300);
+    });
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        const resultados = document.getElementById('resultados-busqueda');
+        const input = document.getElementById('busqueda-inteligente');
+        if (resultados && !resultados.contains(e.target) && e.target !== input) {
+            resultados.style.display = 'none';
+        }
+    });
 
 // === CÁLCULO DE IVA ===
 document.getElementById('montoneto_nc')?.addEventListener('input', function() {
