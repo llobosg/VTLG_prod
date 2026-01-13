@@ -131,21 +131,21 @@ if (php_sapi_name() !== 'cli') {
             <div><strong>CLIENTE:</strong></div>
             <div class="valor-ficha" id="cliente_ficha" style="grid-column: span 3;"><?= htmlspecialchars($cliente_nombre) ?></div>
             <div><strong>CONTACTO:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($contacto_rms) ?></div>
+            <div class="valor-ficha" id="contacto_ficha"><?= htmlspecialchars($contacto_rms) ?></div>
             <div><strong>FECHA:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($fecha_rms) ?></div>
+            <div class="valor-ficha" id="fecha_ficha"><?= htmlspecialchars($fecha_rms) ?></div>
 
             <!-- Fila 2 -->
             <div><strong>REF.CLTE.:</strong></div>
-            <div class="valor-ficha" style="grid-column: span 3;"><?= htmlspecialchars($ref_clte_rms) ?></div>
+            <div class="valor-ficha" id="ref_clte_ficha" style="grid-column: span 3;"><?= htmlspecialchars($ref_clte_rms) ?></div>
             <div><strong>DESPACHO:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($despacho_rms) ?></div>
+            <div class="valor-ficha" id="despacho_ficha"><?= htmlspecialchars($despacho_rms) ?></div>
             <div><strong>MES:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($mes_rms) ?></div>
+            <div class="valor-ficha" id="mes_ficha"><?= htmlspecialchars($mes_rms) ?></div>
 
             <!-- Fila 3 -->
             <div><strong>ESTADO:</strong></div>
-            <div class="valor-ficha"><?= htmlspecialchars($estado_rms) ?></div>
+            <div class="valor-ficha" id="estado_ficha"><?= htmlspecialchars($estado_rms) ?></div>
             <div></div>
             <div></div>
             <div><strong>NRO.NC:</strong></div>
@@ -186,7 +186,7 @@ if (php_sapi_name() !== 'cli') {
                 <?php endif; ?>
             </div>
             <div><strong>TOTAL REMESA:</strong></div>
-            <div class="valor-ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
+            <div class="valor-ficha" id="total_remesa_ficha"><?= number_format($total_transferir_rms, 0, ',', '.') ?></div>
 
             <!-- Fila 5 -->
             <div></div>
@@ -673,7 +673,6 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
                                         Fecha: ${r.fecha_rms}
                                       </small>`;
                         el.onclick = () => {
-                            // Cargar remesa sin crear NC
                             fetch(`/api/get_remesa.php?id=${r.id_rms}`)
                                 .then(res => res.json())
                                 .then(data => {
@@ -685,15 +684,15 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
                                     // Mostrar ficha
                                     document.getElementById('ficha-remesa').style.display = 'block';
 
-                                    // Rellenar campos
+                                    // Rellenar campos con IDs específicos
                                     document.getElementById('cliente_ficha').innerText = data.cliente_nombre || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(4)').innerText = data.contacto_rms || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(6)').innerText = data.fecha_rms || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(9)').innerText = data.ref_clte_rms || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(11)').innerText = data.despacho_rms || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(12)').innerText = data.mes_rms || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(14)').innerText = data.estado_rms || '–';
-                                    document.querySelector('#ficha-remesa > div:nth-child(20)').innerText = new Intl.NumberFormat('es-CL').format(data.total_transferir_rms);
+                                    document.getElementById('contacto_ficha').innerText = data.contacto_rms || '–';
+                                    document.getElementById('fecha_ficha').innerText = data.fecha_rms || '–';
+                                    document.getElementById('ref_clte_ficha').innerText = data.ref_clte_rms || '–';
+                                    document.getElementById('despacho_ficha').innerText = data.despacho_rms || '–';
+                                    document.getElementById('mes_ficha').innerText = data.mes_rms || '–';
+                                    document.getElementById('estado_ficha').innerText = data.estado_rms || '–';
+                                    document.getElementById('total_remesa_ficha').innerText = new Intl.NumberFormat('es-CL').format(data.total_transferir_rms);
 
                                     // Guardar id_rms global
                                     window.id_rms_seleccionado = data.id_rms;
