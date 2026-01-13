@@ -109,36 +109,67 @@ try {
         exit;
     }
 
-    // === ACTUALIZAR DETALLE ===
+    /* ===============================
+   ACTUALIZAR DETALLE DE NOTA COBRANZA
+    =============================== */
     if ($action === 'actualizar_detalle') {
-        if (!isset($_POST['id_detalle'])) {
-            echo json_encode(['success' => false, 'message' => 'ID de detalle requerido.']);
-            exit;
+        $required = ['id_detalle', 'item_detalle', 'proveedor_detalle', 'montoneto_detalle'];
+        foreach ($required as $field) {
+            if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+                echo json_encode(['success' => false, 'message' => 'Campo requerido: ' . $field]);
+                exit;
+            }
         }
 
-        $stmt = $pdo->prepare("
-            UPDATE detalle_nc SET
-                item_detalle = ?,
-                proveedor_detalle = ?,
-                nro_doc_detalle = ?,
-                montoneto_detalle = ?,
-                montoiva_detalle = ?,
-                monto_detalle = ?
-            WHERE id_detalle = ?
-        ");
-        $stmt->execute([
-            $_POST['item_detalle'] ?? '',
-            $_POST['proveedor_detalle'] ?? '',
-            $_POST['nro_doc_detalle'] ?? '',
-            $_POST['montoneto_detalle'] ?? 0,
-            $_POST['montoiva_detalle'] ?? 0,
-            $_POST['monto_detalle'] ?? 0,
-            $_POST['id_detalle']
-        ]);
+        $id_detalle = (int)$_POST['id_detalle'];
+        $item = trim($_POST['item_detalle']);
+        $proveedor = trim($_POST['proveedor_detalle']);
+        $nro_doc = trim($_POST['nro_doc_detalle'] ?? '');
+        $montoneto = (float)$_POST['montoneto_detalle'];
 
-        actualizarTotalesCabecera($_POST['id_cabecera'], $pdo);
-        echo json_encode(['success' => true]);
-        exit;
+        $montoiva = round($montoneto * 0.19, 2);
+        $monto = $montoneto + $montoiva;
+
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE detalle_nc SET
+                    item_detalle = ?,
+                    proveedor_detalle = ?,
+                    nro_doc_detalle = ?,
+                    montoneto_detalle = ?,
+                    montoiva_detalle = ?,
+                    monto_detalle = ?
+                WHERE id_detalle = ?
+            ");
+            $stmt->execute([$item, $proveedor, $nro_doc, $montoneto, $montoiva, $monto, $id_detalle]);
+
+            // Actualizar total en cabecera
+            $stmt = $pdo->prepare("
+                SELECT id_cabecera FROM detalle_nc WHERE id_detalle = ?
+            ");
+            $stmt->execute([$id_detalle]);
+            $id_cabecera = $stmt->fetchColumn();
+
+            if ($id_cabecera) {
+                $pdo->prepare("
+                    UPDATE notacobranza 
+                    SET total_monto_nc = (
+                        SELECT COALESCE(SUM(monto_detalle), 0) 
+                        FROM detalle_nc 
+                        WHERE id_cabecera = ?
+                    )
+                    WHERE id_cabecera = ?
+                ")->execute([$id_cabecera, $id_cabecera]);
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Ítem actualizado correctamente.']);
+            exit;
+
+        } catch (Exception $e) {
+            error_log("Error en actualizar_detalle: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error al actualizar el ítem.']);
+            exit;
+        }
     }
 
     /* ===============================
@@ -204,6 +235,27 @@ try {
 
         $pdo->prepare("DELETE FROM notacobranza WHERE id_cabecera = ?")->execute([$_POST['id_cabecera']]);
         echo json_encode(['success' => true]);
+        exit;
+    }
+
+    /* ===============================
+   OBTENER DETALLE PARA EDICIÓN
+    =============================== */
+    if ($action === 'obtener_detalle') {
+        if (empty($_GET['id']) || !is_numeric($_GET['id'])) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("SELECT * FROM detalle_nc WHERE id_detalle = ?");
+        $stmt->execute([(int)$_GET['id']]);
+        $detalle = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($detalle) {
+            echo json_encode($detalle);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Ítem no encontrado.']);
+        }
         exit;
     }
 

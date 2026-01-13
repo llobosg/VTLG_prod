@@ -359,6 +359,36 @@ function guardarCabeceraNC() {
     });
 }
 
+function editarDetalle(id) {
+    fetch(`/pages/notacobranza_logic.php?action=obtener_detalle&id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data || !data.id_detalle) {
+                alert('❌ No se pudo cargar el ítem.');
+                return;
+            }
+            // Rellenar submodal
+            document.getElementById('id_cabecera').value = data.id_cabecera;
+            document.getElementById('id_detalle').value = data.id_detalle;
+            document.getElementById('item_nc').value = data.item_detalle || '';
+            document.getElementById('proveedor_nc').value = data.proveedor_detalle || '';
+            document.getElementById('nro_doc_nc').value = data.nro_doc_detalle || '';
+            document.getElementById('montoneto_nc').value = parseFloat(data.montoneto_detalle) || '';
+            // Recalcular IVA y total
+            const montoneto = parseFloat(data.montoneto_detalle) || 0;
+            const montoiva = Math.round(montoneto * 0.19);
+            const monto = montoneto + montoiva;
+            document.getElementById('montoiva_nc').value = montoiva;
+            document.getElementById('monto_nc').value = monto;
+
+            document.getElementById('submodal-nc').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Error al cargar ítem:', err);
+            alert('❌ Error al cargar el ítem para edición.');
+        });
+}
+
 // === ABRIR SUBMODAL ÍTEM NC ===
 function abrirSubmodalNC() {
     if (!id_cabecera_actual) {
@@ -376,24 +406,17 @@ function abrirSubmodalNC() {
 
 // === GUARDAR ÍTEM NC (CORREGIDO) ===
 function guardarConceptoNC() {
-    const id_cabecera = document.getElementById('id_cabecera').value;
-    const item = document.getElementById('item_nc').value;
-    const proveedor = document.getElementById('proveedor_nc').value.trim();
-    const nro_doc = document.getElementById('nro_doc_nc').value;
-    const montoneto = document.getElementById('montoneto_nc').value;
-
-    if (!item || !proveedor || !montoneto) {
-        alert('❌ Todos los campos son obligatorios.');
-        return;
-    }
+    const id_detalle = document.getElementById('id_detalle').value;
+    const action = id_detalle ? 'actualizar_detalle' : 'crear_detalle';
 
     const formData = new FormData();
-    formData.append('action', 'crear_detalle');
-    formData.append('id_cabecera', id_cabecera);
-    formData.append('item_detalle', item);
-    formData.append('proveedor_detalle', proveedor);
-    formData.append('nro_doc_detalle', nro_doc);
-    formData.append('montoneto_detalle', montoneto);
+    formData.append('action', action);
+    formData.append('id_cabecera', document.getElementById('id_cabecera').value);
+    if (id_detalle) formData.append('id_detalle', id_detalle);
+    formData.append('item_detalle', document.getElementById('item_nc').value);
+    formData.append('proveedor_detalle', document.getElementById('proveedor_nc').value.trim());
+    formData.append('nro_doc_detalle', document.getElementById('nro_doc_nc').value);
+    formData.append('montoneto_detalle', document.getElementById('montoneto_nc').value);
 
     fetch('/pages/notacobranza_logic.php', {
         method: 'POST',
@@ -402,7 +425,7 @@ function guardarConceptoNC() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Ítem agregado.');
+            alert('✅ ' + data.message);
             cerrarSubmodalNC();
             if (id_cabecera_actual) cargarDetallesNC(id_cabecera_actual);
         } else {
@@ -501,6 +524,58 @@ function confirmarEliminar(id) {
             alert('❌ Error de conexión.');
         });
     }
+}
+// === NOTIFICACIÓN ESTILO CRM_ELOG ===
+function mostrarNotificacion(mensaje, tipo = 'success') {
+    let contenedor = document.getElementById('notificaciones-container');
+    if (!contenedor) {
+        contenedor = document.createElement('div');
+        contenedor.id = 'notificaciones-container';
+        contenedor.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        document.body.appendChild(contenedor);
+    }
+
+    const notif = document.createElement('div');
+    notif.innerText = mensaje;
+    notif.style.cssText = `
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+        ${tipo === 'success' ? 'background: #27ae60;' : 'background: #e74c3c;'}
+    `;
+
+    // Añadir estilos de animación si no existen
+    if (!document.getElementById('notificaciones-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notificaciones-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    contenedor.appendChild(notif);
+    setTimeout(() => {
+        if (notif.parentNode) notif.parentNode.removeChild(notif);
+    }, 3000);
 }
 </script>
 </body>
