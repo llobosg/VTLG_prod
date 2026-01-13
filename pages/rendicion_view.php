@@ -140,6 +140,7 @@ if (isset($_GET['seleccionar'])) {
                     <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['rut_clt'] ?? '') ?></div>
                     <div><strong>FECHA:</strong></div>
                     <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['fecha_rms'] ?? '') ?></div>
+
                     <!-- Fila2 -->
                     <div><strong>REF.CLTE.:</strong></div>
                     <div class="valor-ficha" style="grid-column: span 3;"><?= htmlspecialchars($remesa_seleccionada['ref_clte_rms'] ?? '') ?></div>
@@ -147,11 +148,10 @@ if (isset($_GET['seleccionar'])) {
                     <div class="valor-ficha"><?= htmlspecialchars($remesa_seleccionada['despacho_rms'] ?? '') ?></div>
                     <div><strong>TOTAL REMESA:</strong></div>
                     <div class="valor-ficha"><?= number_format($remesa_seleccionada['total_transferir_rms'] ?? 0, 0, ',', '.') ?></div>
+
                     <!-- Fila2 -->
                     <div><strong>MERCANCÍA:</strong></div>
-                    <div class="valor-ficha" style="grid-column: span 2;"><?= htmlspecialchars($remesa_seleccionada['mercancia_nombre'] ?? '') ?></div>
-
-                    
+                    <div class="valor-ficha" style="grid-column: span 2;"><?= htmlspecialchars($remesa_seleccionada['mercancia_nombre'] ?? '') ?></div>  
                 </div>
             </div>
 
