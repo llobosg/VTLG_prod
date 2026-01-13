@@ -15,37 +15,70 @@ $pdo = getDBConnection();
 $action = $_POST['action'] ?? '';
 
 try {
-    // === CREAR CABECERA DE NOTA DE COBRANZA ===
-    if ($action === 'crear_cabecera') {
-        $id_rms = $_POST['id_rms'] ?? null;
-        if (!$id_rms) {
-            echo json_encode(['success' => false, 'message' => 'ID de remesa requerido.']);
+    /* ===============================
+   CREAR DETALLE DE NOTA COBRANZA
+    =============================== */
+    if ($action === 'crear_detalle') {
+        $required = ['id_cabecera', 'item_detalle', 'proveedor_detalle', 'montoneto_detalle'];
+        foreach ($required as $field) {
+            if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+                echo json_encode(['success' => false, 'message' => 'Campo requerido: ' . $field]);
+                exit;
+            }
+        }
+
+        $id_cabecera = (int)$_POST['id_cabecera'];
+        $item = trim($_POST['item_detalle']);
+        $proveedor = trim($_POST['proveedor_detalle']);
+        $nro_doc = trim($_POST['nro_doc_detalle'] ?? '');
+        $montoneto = (float)$_POST['montoneto_detalle'];
+
+        // Calcular IVA y total
+        $montoiva = round($montoneto * 0.19, 2);
+        $monto = $montoneto + $montoiva;
+
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO detalle_nc (
+                    id_cabecera,
+                    item_detalle,
+                    proveedor_detalle,
+                    nro_doc_detalle,
+                    montoneto_detalle,
+                    montoiva_detalle,
+                    monto_detalle
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $id_cabecera,
+                $item,
+                $proveedor,
+                $nro_doc,
+                $montoneto,
+                $montoiva,
+                $monto
+            ]);
+
+            // Actualizar total_monto_nc en la cabecera
+            $stmt = $pdo->prepare("
+                UPDATE notacobranza 
+                SET total_monto_nc = (
+                    SELECT COALESCE(SUM(monto_detalle), 0) 
+                    FROM detalle_nc 
+                    WHERE id_cabecera = ?
+                )
+                WHERE id_cabecera = ?
+            ");
+            $stmt->execute([$id_cabecera, $id_cabecera]);
+
+            echo json_encode(['success' => true, 'message' => 'Ítem agregado correctamente.']);
+            exit;
+
+        } catch (Exception $e) {
+            error_log("Error en crear_detalle: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error al guardar el ítem.']);
             exit;
         }
-
-        $pdo->beginTransaction();
-        try {
-            $fecha_hoy = date('Ymd');
-            $base = "NC-{$fecha_hoy}-";
-
-            $stmt = $pdo->prepare("SELECT nro_nc FROM notacobranza WHERE nro_nc LIKE ? ORDER BY nro_nc DESC LIMIT 1");
-            $stmt->execute(["{$base}%"]);
-            $ultimo = $stmt->fetchColumn();
-
-            $next_num = $ultimo ? str_pad((int)substr($ultimo, -4) + 1, 4, '0', STR_PAD_LEFT) : '0001';
-            $nro_nc = $base . $next_num;
-
-            $stmt = $pdo->prepare("INSERT INTO notacobranza (id_rms_nc, fecha_nc, nro_nc) VALUES (?, CURDATE(), ?)");
-            $stmt->execute([$id_rms, $nro_nc]);
-            $id_cabecera = $pdo->lastInsertId();
-
-            $pdo->commit();
-            echo json_encode(['success' => true, 'id_cabecera' => (int)$id_cabecera]);
-        } catch (Exception $e) {
-            $pdo->rollback();
-            throw $e;
-        }
-        exit;
     }
 
     // === CREAR DETALLE ===
