@@ -117,7 +117,6 @@ if (php_sapi_name() !== 'cli') {
 
     <script>
     // === BÚSQUEDA INTELIGENTE (solo en modo nueva nota) ===
-    <?php if (!$id_cabecera): ?>
     document.getElementById('busqueda-inteligente').addEventListener('input', function() {
         const term = this.value.trim();
         const div = document.getElementById('resultados-busqueda');
@@ -173,7 +172,6 @@ if (php_sapi_name() !== 'cli') {
             resultados.style.display = 'none';
         }
     });
-    <?php endif; ?>
     </script>
 
     <!-- Ficha de Nota de Cobranza -->
