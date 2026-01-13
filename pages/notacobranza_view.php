@@ -552,7 +552,15 @@ function confirmarEliminar(id) {
         });
     }
 }
-// === NOTIFICACIÓN ESTILO CRM_ELOG ===
+
+function generarPDFNotacobranza() {
+    if (!id_cabecera_actual) {
+        mostrarNotificacion('❌ No hay nota de cobranza activa.', 'error');
+        return;
+    }
+    window.open(`/pages/generar_pdf_notacobranza.php?id=${id_cabecera_actual}`, '_blank');
+}
+// === NOTIFICACIONES TOAST (estilo CRM_ELOG) ===
 function mostrarNotificacion(mensaje, tipo = 'success') {
     let contenedor = document.getElementById('notificaciones-container');
     if (!contenedor) {
