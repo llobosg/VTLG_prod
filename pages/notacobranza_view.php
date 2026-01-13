@@ -209,7 +209,6 @@ if (php_sapi_name() !== 'cli') {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h3 style="margin: 0; font-size: 1.1rem; font-weight: bold;">Conceptos de Nota Cobranza</h3>
             <div style="display: flex; gap: 0.8rem;">
-                <!-- Botón ya movido a la ficha (fila 7), se mantiene aquí solo por compatibilidad visual -->
                 <button class="btn-primary" id="btn-agregar" onclick="abrirSubmodalNC()" style="display: <?= $id_cabecera ? 'inline-flex' : 'none' ?>; padding: 0.4rem 0.8rem;">
                     <i class="fas fa-plus"></i> Agregar ítem NC
                 </button>
@@ -242,7 +241,6 @@ if (php_sapi_name() !== 'cli') {
             <div id="total_monto" style="text-align: right;">0</div>
         </div>
     </div>
-</div>
 
 <!-- SUBMODAL -->
 <div id="submodal-nc" class="submodal">
