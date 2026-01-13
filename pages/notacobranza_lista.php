@@ -53,10 +53,10 @@ if (php_sapi_name() !== 'cli') {
         <h2 style="font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
             <i class="fas fa-file-invoice-dollar"></i> Notas de Cobranza
         </h2>
-        <!-- Botón opcional si deseas crear desde aquí -->
-        <!-- <a href="/pages/notacobranza_view.php" class="btn-primary" style="padding: 0.4rem 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
+        <!-- ✅ Botón restaurado -->
+        <a href="/pages/notacobranza_view.php" class="btn-primary" style="padding: 0.4rem 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
             <i class="fas fa-plus"></i> Nueva Nota
-        </a> -->
+        </a>
     </div>
 
     <div class="card">
