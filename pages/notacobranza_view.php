@@ -191,7 +191,6 @@ if (php_sapi_name() !== 'cli') {
             <!-- Fila 5 -->
             <div></div>
             <div></div>
-            <div></div>
             <div style="grid-column: span 3; display: flex; justify-content: flex-end;">
                 <?php if (!$id_cabecera): ?>
                     <button class="btn-primary" onclick="guardarCabeceraNC()" style="padding: 0.4rem 0.8rem;">
@@ -199,6 +198,7 @@ if (php_sapi_name() !== 'cli') {
                     </button>
                 <?php endif; ?>
             </div>
+            <div></div>
             <div><strong>TOTAL RENDICIÓN:</strong></div>
             <div class="valor-ficha" id="total_rendido_ficha">0</div>
 
@@ -351,8 +351,8 @@ function guardarCabeceraNC() {
     }
 
     // Calcular nro_nc = YYMMDD + id_rms
-    const today = new Date().toISOString().slice(2, 10).replace(/-/g, '');
-    const nro_nc = today + id_rms;
+    const today = new Date().toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+    const nro_nc = today + id_rms; // ✅ Usa id_rms, no la variable PHP
 
     document.getElementById('nro_nc_input').value = nro_nc;
 
