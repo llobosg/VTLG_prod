@@ -491,6 +491,12 @@ function guardarConceptoNC() {
             if (id_cabecera_actual) {
                 cargarDetallesNC(id_cabecera_actual);
             }
+            // Obtener total NC desde la ficha
+            const totalNCStr = document.getElementById('total_nota_ficha').innerText;
+            const totalNC = parseFloat(totalNCStr.replace(/\./g, '').replace(',', '.')) || 0;
+
+            // Recalcular saldo
+            cargarTotalRendiciones(id_rms_actual, total_transferir_valor, totalNC);
         } else {
             alert('❌ ' + (data.message || 'Error al guardar el ítem.'));
         }
@@ -503,8 +509,9 @@ function guardarConceptoNC() {
 
 // === CARGAR DATOS INICIALES ===
 <?php if ($id_cabecera): ?>
-cargarTotalRendiciones(id_rms_actual, total_transferir_valor);
-cargarDetallesNC(id_cabecera_actual);
+    const totalNCInicial = <?= (float)($cabecera['total_monto_nc'] ?? 0) ?>;
+    cargarTotalRendiciones(id_rms_actual, total_transferir_valor, totalNCInicial);
+    cargarDetallesNC(id_cabecera_actual);
 <?php endif; ?>
 
 // === Resto de funciones (placeholder o implementadas en lógica separada) ===
@@ -546,13 +553,15 @@ function cargarDetallesNC(id_cabecera) {
         });
 }
 
-function cargarTotalRendiciones(id_rms, total_transferir) {
+function cargarTotalRendiciones(id_rms, total_transferir, total_nc = 0) {
     fetch(`/api/get_total_rendiciones.php?id_rms=${id_rms}`)
         .then(r => r.json())
         .then(data => {
             const totalRendido = Math.round(parseFloat(data.total_rendicion) || 0);
-            const saldo = total_transferir - totalRendido;
+            // Incluir Nota de Cobranza en el saldo
+            const saldo = (total_transferir - totalRendido) + total_nc;
             const aFavor = saldo < 0 ? 'agencia' : (saldo > 0 ? 'cliente' : 'OK');
+
             document.getElementById('total_rendido_ficha').innerText = totalRendido.toLocaleString('es-CL');
             document.getElementById('saldo_ficha').innerText = Math.abs(saldo).toLocaleString('es-CL');
             document.getElementById('afavor_ficha').innerText = aFavor;
@@ -576,8 +585,14 @@ function confirmarEliminar(id) {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                alert('✅ Ítem eliminado.');
+                mostrarNotificacion('✅ Ítem eliminado.');
+
                 if (id_cabecera_actual) cargarDetallesNC(id_cabecera_actual);
+                // Obtener total NC desde la ficha
+                const totalNCStr = document.getElementById('total_nota_ficha').innerText;
+                const totalNC = parseFloat(totalNCStr.replace(/\./g, '').replace(',', '.')) || 0;
+                // Recalcular saldo
+                cargarTotalRendiciones(id_rms_actual, total_transferir_valor, totalNC);         
             } else {
                 alert('❌ ' + data.message);
             }
