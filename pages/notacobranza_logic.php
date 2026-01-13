@@ -239,7 +239,7 @@ try {
     }
 
     /* ===============================
-   OBTENER DETALLE PARA EDICIÓN
+    OBTENER DETALLE PARA EDICIÓN
     =============================== */
     if ($action === 'obtener_detalle') {
         if (empty($_GET['id']) || !is_numeric($_GET['id'])) {

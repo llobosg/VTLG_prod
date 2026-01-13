@@ -361,31 +361,38 @@ function guardarCabeceraNC() {
 
 function editarDetalle(id) {
     fetch(`/pages/notacobranza_logic.php?action=obtener_detalle&id=${id}`)
-        .then(r => r.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Error en la respuesta del servidor');
+            return response.json();
+        })
         .then(data => {
             if (!data || !data.id_detalle) {
-                alert('❌ No se pudo cargar el ítem.');
+                alert('❌ No se pudo cargar el ítem para edición.');
                 return;
             }
-            // Rellenar submodal
+
+            // Rellenar campos del submodal
             document.getElementById('id_cabecera').value = data.id_cabecera;
             document.getElementById('id_detalle').value = data.id_detalle;
             document.getElementById('item_nc').value = data.item_detalle || '';
             document.getElementById('proveedor_nc').value = data.proveedor_detalle || '';
             document.getElementById('nro_doc_nc').value = data.nro_doc_detalle || '';
-            document.getElementById('montoneto_nc').value = parseFloat(data.montoneto_detalle) || '';
-            // Recalcular IVA y total
+
             const montoneto = parseFloat(data.montoneto_detalle) || 0;
+            document.getElementById('montoneto_nc').value = montoneto;
+
+            // Recalcular IVA y total
             const montoiva = Math.round(montoneto * 0.19);
             const monto = montoneto + montoiva;
             document.getElementById('montoiva_nc').value = montoiva;
             document.getElementById('monto_nc').value = monto;
 
+            // Mostrar submodal
             document.getElementById('submodal-nc').style.display = 'flex';
         })
-        .catch(err => {
-            console.error('Error al cargar ítem:', err);
-            alert('❌ Error al cargar el ítem para edición.');
+        .catch(error => {
+            console.error('Error al cargar ítem para edición:', error);
+            alert('❌ Error al cargar el ítem. Revisa la consola F12.');
         });
 }
 
@@ -406,35 +413,57 @@ function abrirSubmodalNC() {
 
 // === GUARDAR ÍTEM NC (CORREGIDO) ===
 function guardarConceptoNC() {
+    const id_cabecera = document.getElementById('id_cabecera').value;
     const id_detalle = document.getElementById('id_detalle').value;
-    const action = id_detalle ? 'actualizar_detalle' : 'crear_detalle';
+    const item = document.getElementById('item_nc').value.trim();
+    const proveedor = document.getElementById('proveedor_nc').value.trim();
+    const nro_doc = document.getElementById('nro_doc_nc').value.trim();
+    const montoneto = document.getElementById('montoneto_nc').value;
+
+    // Validación
+    if (!item || !proveedor || !montoneto) {
+        alert('❌ Los campos Ítem, Proveedor y Monto Neto son obligatorios.');
+        return;
+    }
 
     const formData = new FormData();
-    formData.append('action', action);
-    formData.append('id_cabecera', document.getElementById('id_cabecera').value);
-    if (id_detalle) formData.append('id_detalle', id_detalle);
-    formData.append('item_detalle', document.getElementById('item_nc').value);
-    formData.append('proveedor_detalle', document.getElementById('proveedor_nc').value.trim());
-    formData.append('nro_doc_detalle', document.getElementById('nro_doc_nc').value);
-    formData.append('montoneto_detalle', document.getElementById('montoneto_nc').value);
+    formData.append('id_cabecera', id_cabecera);
+    formData.append('item_detalle', item);
+    formData.append('proveedor_detalle', proveedor);
+    formData.append('nro_doc_detalle', nro_doc);
+    formData.append('montoneto_detalle', montoneto);
+
+    // Determinar acción
+    if (id_detalle) {
+        formData.append('action', 'actualizar_detalle');
+        formData.append('id_detalle', id_detalle);
+    } else {
+        formData.append('action', 'crear_detalle');
+    }
 
     fetch('/pages/notacobranza_logic.php', {
         method: 'POST',
         body: formData
     })
-    .then(r => r.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Error en la respuesta del servidor');
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             alert('✅ ' + data.message);
             cerrarSubmodalNC();
-            if (id_cabecera_actual) cargarDetallesNC(id_cabecera_actual);
+            // Recargar la tabla de conceptos
+            if (id_cabecera_actual) {
+                cargarDetallesNC(id_cabecera_actual);
+            }
         } else {
-            alert('❌ ' + data.message);
+            alert('❌ ' + (data.message || 'Error al guardar el ítem.'));
         }
     })
-    .catch(err => {
-        console.error('Error:', err);
-        alert('❌ Error de conexión.');
+    .catch(error => {
+        console.error('Error al guardar ítem:', error);
+        alert('❌ Error de conexión. Revisa la consola F12.');
     });
 }
 
