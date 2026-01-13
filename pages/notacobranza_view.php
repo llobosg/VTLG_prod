@@ -155,7 +155,11 @@ if (php_sapi_name() !== 'cli') {
                 <?php if ($id_cabecera): ?>
                     <?= htmlspecialchars($nro_nc) ?>
                 <?php else: ?>
-                    <input type="text" id="nro_nc_input" readonly style="width: 100%; height: 2.0rem; padding: 0.3rem; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" 
+                        id="nro_nc_input" 
+                        readonly 
+                        style="width: 100%; height: 2.0rem; padding: 0.3rem; font-size: 0.9rem; 
+                            border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9;">
                 <?php endif; ?>
             </div>
             <div><strong>FECHA VCTO.:</strong></div>
@@ -163,7 +167,10 @@ if (php_sapi_name() !== 'cli') {
                 <?php if ($id_cabecera): ?>
                     <?= htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') ?>
                 <?php else: ?>
-                    <input type="date" id="fecha_vence_nc_input" style="width: 100%; height: 2.0rem; padding: 0.3rem; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="date" 
+                        id="fecha_vence_nc_input" 
+                        style="width: 100%; height: 2.0rem; padding: 0.3rem; font-size: 0.9rem; 
+                            border: 1px solid #ccc; border-radius: 4px; background-color: white;">
                 <?php endif; ?>
             </div>
 
@@ -171,12 +178,13 @@ if (php_sapi_name() !== 'cli') {
             <div><strong>CONCEPTO:</strong></div>
             <div class="valor-ficha" style="grid-column: span 4;">
                 <?php if ($id_cabecera): ?>
-                    <?= htmlspecialchars($cabecera['concepto_nc'] ?? '') ?>
+                    <?= htmlspecialchars($concepto_nc) ?>
                 <?php else: ?>
                     <input type="text" 
                         id="concepto_nc_input" 
                         placeholder="Concepto de la nota de cobranza"
-                        style="width: 100%; padding: 0.3rem; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 4px;">
+                        style="width: 100%; height: 2.0rem; padding: 0.3rem; font-size: 0.9rem; 
+                            border: 1px solid #ccc; border-radius: 4px; background-color: white;">
                 <?php endif; ?>
             </div>
             <div><strong>TOTAL REMESA:</strong></div>
@@ -187,9 +195,11 @@ if (php_sapi_name() !== 'cli') {
             <div></div>
             <div></div>
             <div style="grid-column: span 3; display: flex; justify-content: flex-end;">
-                <button class="btn-primary" onclick="guardarCabeceraNC()" style="padding: 0.4rem 0.8rem;">
-                    <i class="fas fa-save"></i> + Guardar Concepto, Nro.NC y Fecha Vcto
-                </button>
+                <?php if (!$id_cabecera): ?>
+                    <button class="btn-primary" onclick="guardarCabeceraNC()" style="padding: 0.4rem 0.8rem;">
+                        <i class="fas fa-save"></i> + Guardar Concepto, Nro.NC y Fecha Vcto
+                    </button>
+                <?php endif; ?>
             </div>
             <div><strong>TOTAL RENDICIÓN:</strong></div>
             <div class="valor-ficha" id="total_rendido_ficha">0</div>
