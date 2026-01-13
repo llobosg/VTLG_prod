@@ -234,34 +234,35 @@ if (isset($_GET['seleccionar'])) {
 
                     <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center; font-weight: bold;">
                         <!-- Fila 1 -->
-                        <div></div>
                         <div><label style="margin: 0;">Total Clte.:</label></div>
                         <div style="color: #2c3e50;"><?= number_format($totalCliente, 0, ',', '.') ?></div>
                         <div></div>
-                        <div></div>
                         <div><label style="margin: 0;">Neto:</label></div>
                         <div style="color: #2c3e50;"><?= number_format($totalAgencia, 0, ',', '.') ?></div>
+                        <div></div>
+                        <div></div>
                         <div></div>
 
                         <!-- Fila 2 -->
                         <div></div>
                         <div></div>
                         <div></div>
-                        <div></div>
-                        <div></div>
                         <div><label style="margin: 0;">Iva:</label></div>
                         <div style="color: #2c3e50;"><?= number_format($ivaAgencia, 0, ',', '.') ?></div>
                         <div></div>
+                        <div><label style="margin: 0;">A Favor de:</label></div>
+                        <div style="color: #2c3e50;"><?= ($aFavor === 'cliente' ? 'Cliente' : ($aFavor === 'agencia' ? 'Agencia' : 'OK')) ?></div>
+                        <div></div>
 
                         <!-- Fila 3 -->
-                        <div></div>
                         <div><label style="margin: 0;">Total Liquidación:</label></div>
                         <div style="color: #2c3e50;"><?= number_format($totalRendicion, 0, ',', '.') ?></div>
-                        <div></div>
                         <div></div>
                         <div><label style="margin: 0;">Total Agencia:</label></div>
                         <div style="color: #2c3e50;"><?= number_format($totalGastosAgencia, 0, ',', '.') ?></div>
                         <div></div>
+                        <div><label style="margin: 0;">Saldo:</label></div>
+                        <div style="color: #2c3e50;"><?= number_format($saldo, 0, ',', '.') ?></div>
                     </div>
                 </div>
             </div>
