@@ -467,7 +467,7 @@ function cargarDetallesNC(id_cabecera) {
                             <td>${parseFloat(d.montoiva_detalle).toLocaleString('es-CL')}</td>
                             <td>${monto.toLocaleString('es-CL')}</td>
                             <td>
-                                <a href="#" class="btn-edit" title="Editar" onclick="alert('Edición no implementada.'); return false;">
+                                <a href="#" class="btn-edit" title="Editar" onclick="editarDetalle(<?= $d['id_detalle'] ?>); return false;">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminar(${d.id_detalle}); return false;">
