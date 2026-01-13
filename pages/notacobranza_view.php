@@ -171,7 +171,7 @@ if (php_sapi_name() !== 'cli') {
             <div><strong>CONCEPTO:</strong></div>
             <div class="valor-ficha" style="grid-column: span 4;">
                 <?php if ($id_cabecera): ?>
-                    <?= htmlspecialchars($concepto_nc) ?>
+                    <?= htmlspecialchars($cabecera['concepto_nc'] ?? '') ?>
                 <?php else: ?>
                     <input type="text" 
                         id="concepto_nc_input" 
@@ -187,11 +187,9 @@ if (php_sapi_name() !== 'cli') {
             <div></div>
             <div></div>
             <div style="grid-column: span 3; display: flex; justify-content: flex-end;">
-                <?php if (!$id_cabecera): ?>
-                    <button class="btn-primary" onclick="guardarCabeceraNC()" style="padding: 0.4rem 0.8rem;">
-                        <i class="fas fa-save"></i> + Guardar Concepto, Nro.NC y Fecha Vcto
-                    </button>
-                <?php endif; ?>
+                <button class="btn-primary" onclick="guardarCabeceraNC()" style="padding: 0.4rem 0.8rem;">
+                    <i class="fas fa-save"></i> + Guardar Concepto, Nro.NC y Fecha Vcto
+                </button>
             </div>
             <div><strong>TOTAL RENDICIÓN:</strong></div>
             <div class="valor-ficha" id="total_rendido_ficha">0</div>
