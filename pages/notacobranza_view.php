@@ -114,7 +114,16 @@ if (php_sapi_name() !== 'cli') {
             </button>
         </div>
     </div>
-
+    <!-- Búsqueda inteligente (solo nueva nota) -->
+    <?php if (!$id_cabecera): ?>
+    <div class="busqueda-container">
+        <input type="text" 
+            id="busqueda-inteligente" 
+            placeholder="Buscar remesa por cliente, mercancía, ref.clte o fecha..." 
+            style="width: 100%; height: 2.4rem; padding: 0.5rem; font-size: 0.95rem; border: 1px solid #ccc; border-radius: 4px;">
+        <div id="resultados-busqueda"></div>
+    </div>
+    <?php endif; ?>
     <!-- Ficha de Nota de Cobranza -->
     <div id="ficha-remesa" style="display: <?= $id_cabecera ? 'block' : 'none' ?>;" class="card" style="margin-bottom: 1.5rem;">
         <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
