@@ -221,4 +221,48 @@ try {
     error_log("Error en notacobranza_logic: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error interno del servidor.']);
 }
+
+/* ===============================
+   ELIMINAR NOTA DE COBRANZA COMPLETA (cabecera + detalles)
+=============================== */
+if ($action === 'eliminar_nota_cobranza') {
+    if (empty($_POST['id_cabecera']) || !is_numeric($_POST['id_cabecera'])) {
+        echo json_encode(['success' => false, 'message' => 'ID de nota inválido.']);
+        exit;
+    }
+
+    $id_cabecera = (int)$_POST['id_cabecera'];
+
+    try {
+        // Iniciar transacción
+        $pdo->beginTransaction();
+
+        // Verificar si existen detalles
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM detalle_nc WHERE id_cabecera = ?");
+        $stmt->execute([$id_cabecera]);
+        $tiene_detalles = $stmt->fetchColumn() > 0;
+
+        // Eliminar detalles primero
+        $pdo->prepare("DELETE FROM detalle_nc WHERE id_cabecera = ?")->execute([$id_cabecera]);
+
+        // Eliminar cabecera
+        $pdo->prepare("DELETE FROM notacobranza WHERE id_cabecera = ?")->execute([$id_cabecera]);
+
+        // Confirmar transacción
+        $pdo->commit();
+
+        $mensaje = $tiene_detalles 
+            ? '✅ Nota de cobranza y sus ítems eliminados.' 
+            : '✅ Nota de cobranza eliminada.';
+
+        echo json_encode(['success' => true, 'message' => $mensaje]);
+        exit;
+
+    } catch (Exception $e) {
+        $pdo->rollback();
+        error_log("Error al eliminar nota de cobranza: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Error al eliminar la nota de cobranza.']);
+        exit;
+    }
+}
 ?>

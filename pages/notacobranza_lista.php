@@ -97,7 +97,7 @@ $notas = $stmt->fetchAll();
                             <a href="/pages/generar_pdf_notacobranza.php?id=<?= $n['id_cabecera'] ?>" target="_blank" class="btn-comment" title="PDF" style="padding: 0.4rem 0.6rem; margin-right: 0.3rem;">
                                 <i class="fas fa-file-pdf"></i>
                             </a>
-                            <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminarCabecera(<?= $n['id_cabecera'] ?>)" style="padding: 0.4rem 0.6rem;">
+                            <a href="#" class="btn-delete" title="Eliminar" onclick="confirmarEliminarNota(<?= $nota['id_cabecera'] ?>)">
                                 <i class="fas fa-trash-alt"></i>
                             </a>
                         </td>
@@ -169,6 +169,33 @@ window.onclick = function(event) {
         cerrarModalEliminar();
     }
 }
+
+<script>
+function confirmarEliminarNota(id) {
+    if (confirm('¿Eliminar esta nota de cobranza y todos sus ítems?')) {
+        const formData = new FormData();
+        formData.append('action', 'eliminar_nota_cobranza');
+        formData.append('id_cabecera', id);
+
+        fetch('/pages/notacobranza_logic.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(err => {
+            alert('❌ Error de conexión.');
+        });
+    }
+}
+</script>
 </script>
 </script>
 </body>
