@@ -163,14 +163,12 @@ $html = '
             </div>
         </div>
     </div>
-    </div>
+</div>
     <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
-    <div style="position: relative; margin: 8px 0;">
     <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
         DOCUMENTO NO TRIBUTARIO
     </div>
-    </div>
-    
+
     <!-- Separación -->
     <div class="separator"></div>
     <div class="separator"></div>
