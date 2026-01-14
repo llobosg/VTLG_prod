@@ -158,17 +158,17 @@ $html = '
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
                 ***<br>
                 R.U.T. 13.979.734-6<br>
-                NOTA DE COBRANZA2<br>
+                NOTA DE COBRANZA<br>
                 Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
             </div>
         </div>
+        <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
+        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
+            DOCUMENTO NO TRIBUTARIO
+        </div>
     </div>
 </div>
-    <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
-    <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
-        DOCUMENTO NO TRIBUTARIO
-    </div>
-
+    <!-- aqui no -->
     <!-- Separación -->
     <div class="separator"></div>
     <div class="separator"></div>
