@@ -41,7 +41,16 @@ if (!$cabecera) {
 $stmt = $pdo->prepare("SELECT * FROM detalle_nc WHERE id_cabecera = ? ORDER BY id_detalle");
 $stmt->execute([$id_cabecera]);
 $detalles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-// Calcular totales desde los detalles
+
+// === CARGAR LOGO COMO BASE64 ===
+$logoBase64 = '';
+$logoPath = __DIR__ . '/../includes/LogoLG.jpeg';
+if (file_exists($logoPath)) {
+    $logoData = file_get_contents($logoPath);
+    $logoBase64 = 'image/jpeg;base64,' . base64_encode($logoData);
+}
+
+// === CALCULAR TOTALES ===
 $total_neto = 0;
 $total_iva = 0;
 $total_monto = 0;
@@ -51,17 +60,12 @@ foreach ($detalles as $d) {
     $total_monto += (float)$d['monto_detalle'];
 }
 
-function fmt($val) {
-    return number_format($val, 0, ',', '.');
-}
-
 $options = new Options();
 $options->set('defaultFont', 'Arial');
 $options->set('chroot', $_SERVER['DOCUMENT_ROOT'] ?? '/app');
 $dompdf = new Dompdf($options);
 
-$html = '
-<!DOCTYPE html>
+$html = '<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -75,7 +79,7 @@ $html = '
             table-layout: fixed;
         }
         .header-table td {
-            vertical-align: middle;
+            vertical-align: top;
             padding: 2px;
         }
         .col1 { width: 50%; text-align: left; }
@@ -101,7 +105,7 @@ $html = '
             margin: 8px 0;
         }
         .detail-table thead th {
-            background-color: #f2f2f2; /* ✅ Fondo gris suave */
+            background-color: #f2f2f2;
             padding: 4px;
             border: 1px solid #000;
             text-align: center;
@@ -115,10 +119,10 @@ $html = '
             text-align: right;
         }
         .totals-row td {
-            border-top: 2px solid #000; /* ✅ Solo borde superior grueso */
+            border-top: 2px solid #000;
             border-left: none;
             border-right: none;
-            border-bottom: none; /* ✅ Sin borde inferior */
+            border-bottom: none;
             font-weight: bold;
             padding: 4px;
             text-align: right;
@@ -137,54 +141,57 @@ $html = '
     </style>
 </head>
 <body>
-<div class="container">
-    <!-- SECCIÓN SUPERIOR NUEVA -->
+<div class="container">';
+
+// === SECCIÓN SUPERIOR CON LOGO ===
+$html .= '
     <div class="header">
         <table class="header-table">
             <tr>
-                <td class="col1"></td>
+                <td class="col1" style="vertical-align: top; padding-right: 10px;">';
+
+if ($logoBase64) {
+    $html .= '<img src="' . $logoBase64 . '" alt="Logo" style="height: 40px; width: auto;">';
+}
+
+$html .= '
+                </td>
+                <td class="col1" style="vertical-align: top;">
+                    <div><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></div>
+                    <div>R.U.T. 13.979.734-6</div>
+                    <div>Casa matriz: Blanco 1623 of 1203 Valparaíso - Valparaíso</div>
+                </td>
                 <td class="col2"></td>
-                <td class="col3"></td>
-            </tr>
-            <tr>
-                <td class="col1"></td>
-                <td class="col2"></td>
-                <td class="col3"></td>
-            </tr>
-            <tr>
-                <td class="col1"><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></td>
-                <td class="col2"></td>
-                <td class="col3"></td>
-            </tr>
-            <tr>
-                <td class="col1">Casa matriz: Blanco 1623 of 1203 Valparaíso - Valparaíso</td>
-                <td class="col2"></td>
-                <td class="col3"></td>
+                <td class="col3" style="text-align: center; vertical-align: top;">
+                    <div style="font-weight: bold;">NOTA DE COBRANZA</div>
+                    <div>Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '</div>
+                </td>
             </tr>
         </table>
-        <!-- Cuadro derecho CORREGIDO -->
+
+        <!-- Cuadro derecho -->
         <div class="box-right">
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
-                *<br>
-                R.U.T. 13.979.734-6<br>
+                R.U.T.<br>
                 NOTA DE COBRANZA<br>
-                Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '<br>
-                DOCUMENTO NO TRIBUTARIO<br>
+                Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
             </div>
         </div>
-    </div>
-</div>
-    <!-- Separación -->
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
+    </div>';
 
-    <!-- SECCIÓN SUPERIOR -->
+// === SEPARACIÓN ===
+$html .= '
+    <div class="separator"></div>
+    <div class="separator"></div>
+    <div class="separator"></div>
+    <div class="separator"></div>';
+
+// === DATOS DEL CLIENTE ===
+$html .= '
     <div class="header">
         <table class="header-table">
             <tr>
-                <td class="col1"><strong>Fecha:</strong> ' . htmlspecialchars($cabecera['fecha_nc']) . '</td>
+                <td class="col1"><strong>Fecha:</strong> ' . htmlspecialchars($cabecera['fecha_nc'] ?? '') . '</td>
                 <td class="col2"></td>
                 <td class="col3" style="text-align: left;"><strong>Despacho:</strong> ' . htmlspecialchars($cabecera['despacho_rms'] ?? '') . '</td>      
             </tr>
@@ -213,9 +220,10 @@ $html = '
     <!-- Cuadro derecho para sección cliente -->
     <div style="position: relative; margin-top: -100px;">
         <div style="position: absolute; right: 20px; top: 0; width: 40%; height: 70px; border: 1px solid #000; box-sizing: border-box;"></div>
-    </div>
+    </div>';
 
-    <!-- Separación -->
+// === SEPARACIÓN ===
+$html .= '
     <div class="separator"></div>
     <div class="separator"></div>
     <div class="separator"></div>
@@ -224,32 +232,35 @@ $html = '
     <div class="separator"></div>
     <div class="separator"></div>
     <div class="separator"></div>
-    <div class="separator"></div>
+    <div class="separator"></div>';
 
-    <!-- SECCIÓN MEDIO (DETALLE NOTA) -->
+// === DOCUMENTO NO TRIBUTARIO ===
+$html .= '
+    <div style="position: relative; margin: 12px 0;">
+        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
+            DOCUMENTO NO TRIBUTARIO
+        </div>
+    </div>';
 
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
-
-    <!-- FECHA VENCIMIENTO y CONCEPTO -->
+// === CONCEPTO Y FECHA VENCIMIENTO ===
+$html .= '
     <div style="margin: 12px 0; display: flex; gap: 20px;">
-        <div style="font-weight: bold; margin-bottom: 4px; text-align: center;">FECHA VENCIMIENTO: ' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '</div>
-        <div class="separator"></div>
-        <div class="separator"></div>
-        <div class="separator"></div>
-        <div class="separator"></div>   
-            <div style="width: 70%;">
+        <div style="width: 70%;">
             <div style="font-weight: bold; margin-bottom: 4px;">CONCEPTO:</div>
             <div style="padding: 6px; border: 1px solid #000; min-height: 24px;">
                 ' . htmlspecialchars($cabecera['concepto_nc'] ?? '') . '
             </div>
         </div>
-    </div>
+        <div style="width: 30%;">
+            <div style="font-weight: bold; margin-bottom: 4px;">FECHA VENCIMIENTO:</div>
+            <div style="padding: 6px; border: 1px solid #000; text-align: center;">
+                ' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '
+            </div>
+        </div>
+    </div>';
 
-    <!-- DETALLE DE LA NOTA -->
+// === DETALLE DE LA NOTA ===
+$html .= '
     <table class="detail-table">
         <thead>
             <tr>
@@ -261,27 +272,44 @@ $html = '
                 <th style="text-align: center;">Monto</th>
             </tr>
         </thead>
-        <tbody>
-            ' . implode('', array_map(function($d) {
-                return '<tr>
-                    <td>' . htmlspecialchars($d['item_detalle']) . '</td>
-                    <td>' . htmlspecialchars($d['proveedor_detalle']) . '</td>
-                    <td style="text-align: center;">' . htmlspecialchars($d['nro_doc_detalle']) . '</td>
-                    <td style="text-align: right;">' . fmt($d['montoneto_detalle']) . '</td>
-                    <td style="text-align: right;">' . fmt($d['montoiva_detalle']) . '</td>
-                    <td style="text-align: right;">' . fmt($d['monto_detalle']) . '</td>
-                </tr>';
-            }, $detalles)) . '
+        <tbody>';
+
+foreach ($detalles as $d) {
+    $html .= '<tr>
+        <td>' . htmlspecialchars($d['item_detalle']) . '</td>
+        <td>' . htmlspecialchars($d['proveedor_detalle']) . '</td>
+        <td>' . htmlspecialchars($d['nro_doc_detalle']) . '</td>
+        <td>$' . number_format((float)$d['montoneto_detalle'], 0, ',', '.') . '</td>
+        <td>$' . number_format((float)$d['montoiva_detalle'], 0, ',', '.') . '</td>
+        <td>$' . number_format((float)$d['monto_detalle'], 0, ',', '.') . '</td>
+    </tr>';
+}
+
+// Rellenar filas si hay menos de 10
+$filas_faltantes = max(0, 10 - count($detalles));
+for ($i = 0; $i < $filas_faltantes; $i++) {
+    $html .= '<tr>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+    </tr>';
+}
+
+$html .= '
             <tr class="totals-row">
                 <td colspan="3" style="text-align: right; font-weight: bold;">TOTALES:</td>
-                <td style="text-align: right;">$' . number_format($total_neto, 0, ',', '.') . '</td>
-                <td style="text-align: right;">$' . number_format($total_iva, 0, ',', '.') . '</td>
-                <td style="text-align: right;">$' . number_format($total_monto, 0, ',', '.') . '</td>
+                <td>$' . number_format($total_neto, 0, ',', '.') . '</td>
+                <td>$' . number_format($total_iva, 0, ',', '.') . '</td>
+                <td>$' . number_format($total_monto, 0, ',', '.') . '</td>
             </tr>
         </tbody>
-    </table>
+    </table>';
 
-    <!-- PIE DE PÁGINA -->
+// === PIE DE PÁGINA ===
+$html .= '
     <div class="footer">
         Este es un documento no tributario, emitido exclusivamente con fines de cobranza<br>
         por aquellos gastos por cuenta de terceros asociados a la operación indicada.<br>
@@ -289,8 +317,7 @@ $html = '
     </div>
 </div>
 </body>
-</html>
-';
+</html>';
 
 $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
