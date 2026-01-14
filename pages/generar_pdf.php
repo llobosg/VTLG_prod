@@ -129,40 +129,56 @@ $html = '
     <div class="section-box">
         <div style="margin-bottom: 10px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
-            <div></div>
-            <div></div>
-            <h2>SOLICITUD DE REMESA</h2>
-            <table style="margin-top: 8px;">
+            <h2 style="margin: 8px 0;">SOLICITUD DE REMESA</h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+                <!-- Fila 1: FECHA / MES -->
                 <tr>
-                    <td class="label">FECHA:</td><td>' . htmlspecialchars($remesa['fecha_rms']) . '</td>
-                    <td class="label">MES:</td><td>' . htmlspecialchars($remesa['mes_rms']) . '</td>
+                    <td class="label" style="width: 15%;">FECHA:</td>
+                    <td style="width: 35%; padding-right: 10px;">' . htmlspecialchars($remesa['fecha_rms']) . '</td>
+                    <td class="label" style="width: 15%;">MES:</td>
+                    <td style="width: 35%;">' . htmlspecialchars($remesa['mes_rms']) . '</td>
                 </tr>
-            </table>
-            <table style="margin-top: 6px;">
+                
+                <!-- Fila 2: SRES. / ATN. -->
                 <tr>
-                    <td class="label">SRES.:</td><td>' . htmlspecialchars($remesa['cliente_nombre'] ?? '') . '</td>
-                    <td class="label">ATN.:</td><td>' . htmlspecialchars($remesa['contacto_rms']) . '</td>
+                    <td class="label">SRES.:</td>
+                    <td style="padding-right: 10px;">' . htmlspecialchars($remesa['cliente_nombre'] ?? '') . '</td>
+                    <td class="label">ATN.:</td>
+                    <td>' . htmlspecialchars($remesa['contacto_rms']) . '</td>
+                </tr>
+                
+                <!-- Fila 3: DESPACHO / TRÁMITE -->
+                <tr>
+                    <td class="label">DESPACHO</td>
+                    <td style="padding-right: 10px;">' . htmlspecialchars($remesa['despacho_rms']) . '</td>
+                    <td class="label">TRÁMITE</td>
+                    <td>' . htmlspecialchars($remesa['tramite_rms']) . '</td>
+                </tr>
+                
+                <!-- Fila 4: REF.CLTE. (span 3 columnas) -->
+                <tr>
+                    <td class="label">REF.CLTE.</td>
+                    <td colspan="3">' . htmlspecialchars($remesa['ref_clte_rms']) . '</td>
+                </tr>
+                
+                <!-- Fila 5: ADUANA / CIA.TRANSP. -->
+                <tr>
+                    <td class="label">ADUANA</td>
+                    <td style="padding-right: 10px;">' . htmlspecialchars($remesa['aduana_rms']) . '</td>
+                    <td class="label">CIA.TRANSP./M/N</td>
+                    <td>' . htmlspecialchars($remesa['transporte_nombre'] ?? '') . '</td>
+                </tr>
+                
+                <!-- Fila 6: MERCANCÍA / MOTONAVE -->
+                <tr>
+                    <td class="label">MERCANCÍA</td>
+                    <td style="padding-right: 10px;">' . htmlspecialchars($remesa['mercancia_nombre'] ?? '') . '</td>
+                    <td class="label">MOTONAVE</td>
+                    <td>' . htmlspecialchars($remesa['motonave_rms']) . '</td>
                 </tr>
             </table>
         </div>
-
-        <table style="margin-top: 12px;">
-            <tr>
-                <td class="label">DESPACHO</td><td>' . htmlspecialchars($remesa['despacho_rms']) . '</td>
-                <td class="label">TRÁMITE</td><td>' . htmlspecialchars($remesa['tramite_rms']) . '</td>
-            </tr>
-            <tr>
-                <td class="label">REF.CLTE.</td><td colspan="3">' . htmlspecialchars($remesa['ref_clte_rms']) . '</td>
-            </tr>
-            <tr>
-                <td class="label">ADUANA</td><td>' . htmlspecialchars($remesa['aduana_rms']) . '</td>
-                <td class="label">CIA.TRANSP./M/N</td><td>' . htmlspecialchars($remesa['transporte_nombre'] ?? '') . '</td>
-            </tr>
-            <tr>
-                <td class="label">MERCANCÍA</td><td>' . htmlspecialchars($remesa['mercancia_nombre'] ?? '') . '</td>
-                <td class="label">MOTONAVE</td><td>' . htmlspecialchars($remesa['motonave_rms']) . '</td>
-            </tr>
-        </table>
     </div>
 
     <!-- === SECCIÓN INTERMEDIA (6 columnas con proporción exacta) === -->
@@ -296,11 +312,11 @@ $html = '
                 </td>
             </tr>
             <tr>
-                <td><strong>TITULAR:</strong> VTLG COMERCIO EXTERIOR LTDA.</td>
+                <td><strong>TITULAR:</strong> AGENCIA DE ADUANAS LUIS GALLEGUILLOS V.</td>
                 <td><strong>CTA. CTE. NRO.:</strong> 82323058</td>
             </tr>
             <tr>
-                <td><strong>RUT:</strong> 76.864.039-4</td>
+                <td><strong>RUT:</strong> 13.979.734-6</td>
                 <td><strong>BANCO:</strong> SANTANDER</td>
             </tr>
         </table>
