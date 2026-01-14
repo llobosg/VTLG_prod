@@ -91,19 +91,28 @@ $html = '
             border-collapse: collapse;
             margin: 8px 0;
         }
-        .detail-table th,
-        .detail-table td {
+        .detail-table thead th {
+            background-color: #f2f2f2; /* ✅ Fondo gris suave */
+            padding: 4px;
+            border: 1px solid #000;
+            text-align: center;
+        }
+        .detail-table tbody td {
             padding: 4px;
             border: 1px solid #000;
             text-align: left;
         }
-        .detail-table th:last-child,
-        .detail-table td:last-child {
+        .detail-table tbody td:last-child {
             text-align: right;
         }
         .totals-row td {
-            border-top: 2px solid #000;
+            border-top: 2px solid #000; /* ✅ Solo borde superior grueso */
+            border-left: none;
+            border-right: none;
+            border-bottom: none; /* ✅ Sin borde inferior */
             font-weight: bold;
+            padding: 4px;
+            text-align: right;
         }
         .footer {
             position: absolute;
@@ -144,8 +153,14 @@ $html = '
                 <td class="col3">Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '</td>
             </tr>
         </table>
-        <!-- Cuadro derecho -->
-        <div class="box-right"></div>
+        <!-- Cuadro derecho CORREGIDO -->
+        <div class="box-right">
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
+                R.U.T.<br>
+                NOTA DE COBRANZA<br>
+                Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
+            </div>
+        </div>
     </div>
 
     <!-- Separación -->
@@ -200,9 +215,9 @@ $html = '
     <div class="separator"></div>
     <div class="separator"></div>
 
-    <!-- ✅ Label alineado con el cuadro -->
-    <div style="position: relative; margin: 12px 0;">
-        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-weight: bold;">
+    <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
+    <div style="position: relative; margin: 8px 0;">
+        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
             DOCUMENTO NO TRIBUTARIO
         </div>
     </div>
