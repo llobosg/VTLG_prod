@@ -184,7 +184,7 @@ $html = '
                 *<br>
                 R.U.T. 13.979.734-6<br>
                 NOTA DE COBRANZA<br>
-                Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '<br>
+                Nº: <span style="color: #071289;"><?php echo htmlspecialchars($cabecera['nro_nc'] ?? ''); ?></span><br>
                 DOCUMENTO NO TRIBUTARIO<br>
             </div>
         </div>
