@@ -156,7 +156,6 @@ $html = '
 </head>
 <body>
 <div class="container">
-
     <!-- === SECCIÓN SUPERIOR (CABECERA + 4x4) === -->
     <!-- LOGO SUPERIOR IZQUIERDO -->
     <div class="logo-box">
@@ -164,7 +163,6 @@ $html = '
     </div>
     <div class="section-box">
         <!-- ESPACIO SEPARADOR DESPUÉS DEL LOGO -->
-        <div class="header-spacer"></div>
         <div class="header-spacer"></div>
         <div style="margin-bottom: 10px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
