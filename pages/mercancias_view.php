@@ -108,7 +108,7 @@ if (php_sapi_name() !== 'cli') {
 <!-- Submodal Mercancía -->
 <div id="submodal-mercancia" class="submodal" style="display: none;">
     <div class="submodal-content" style="max-width: 500px; padding: 1.8rem; position: relative;">
-        <span class="submodal-close" onclick="cerrarSubmodalMercancia()" style="position: absolute; top: 1.2rem; right: 1.2rem;">">×</span>
+        <span class="submodal-close" onclick="cerrarSubmodalMercancia()" style="position: absolute; top: 1.2rem; right: 1.2rem;"></span>
         <h3 style="margin: 0 0 1.4rem 0; font-size: 1.3rem;" id="submodal-titulo-mercancia">
             <i class="fas fa-box"></i> Nueva Mercancía
         </h3>
