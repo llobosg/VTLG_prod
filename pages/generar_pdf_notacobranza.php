@@ -165,17 +165,13 @@ $html = '
         <!-- Cuadro derecho CORREGIDO -->
         <div class="box-right">
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
-                ***<br>
+                ___<br>
                 R.U.T. 13.979.734-6<br>
                 NOTA DE COBRANZA<br>
-                Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
-                ***<br>
+                Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '<br>
+                ___<br>
                 DOCUMENTO NO TRIBUTARIO<br>
             </div>
-        </div>
-        <!-- DOCUMENTO NO TRIBUTARIO (arriba del cuadro) -->
-        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
-            DOCUMENTO NO TRIBUTARIO
         </div>
     </div>
 </div>
@@ -242,12 +238,11 @@ $html = '
 
     <!-- FECHA VENCIMIENTO y CONCEPTO -->
     <div style="margin: 12px 0; display: flex; gap: 20px;">
-        <div style="font-weight: bold; margin-bottom: 4px;">FECHA VENCIMIENTO:</div>
-        <div style="width: 10%;">
-            <div style="padding: 6px; border: 1px solid #000; text-align: center;">
-                ' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '
-            </div>
-        </div>
+        <div style="font-weight: bold; margin-bottom: 4px; style="text-align: center;">FECHA VENCIMIENTO:' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '</div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
         <div style="width: 70%;">
             <div style="font-weight: bold; margin-bottom: 4px;">CONCEPTO:</div>
             <div style="padding: 6px; border: 1px solid #000; min-height: 24px;">
