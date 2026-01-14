@@ -1,5 +1,7 @@
 <?php
-// Iniciar sesión al inicio
+require_once 'config.php';
+
+// Iniciar sesión
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -14,15 +16,12 @@ $error = '';
 
 // Procesar login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_once 'config.php';
-    
     $usuario = trim($_POST['usuario'] ?? '');
     $password = $_POST['password'] ?? '';
     
     if ($usuario && $password) {
         try {
             $pdo = getDBConnection();
-            // Ajusta los nombres de columna según tu tabla 'usuarios'
             $stmt = $pdo->prepare("SELECT id_usr, nombre_usr, rol_usr, password_usr FROM usuarios WHERE nombre_usr = ?");
             $stmt->execute([$usuario]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -49,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $error = 'Complete todos los campos.';
     }
+} else {
+    // Mostrar error desde URL
+    $error = $_GET['error'] ?? '';
 }
 ?>
 <!DOCTYPE html>
@@ -128,20 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-container">
     <img src="/includes/logo.png" alt="Logo VTLG" class="login-logo" onerror="this.style.display='none'">
     <h2><i class="fas fa-lock"></i> Acceso al Sistema</h2>
-    <?php 
-    // Mostrar error desde POST o GET
-    $mensaje_error = '';
-    if (!empty($_POST['error'])) {
-        $mensaje_error = $_POST['error'];
-    } elseif (!empty($_GET['error'])) {
-        $mensaje_error = $_GET['error'];
-    } elseif (!empty($error)) {
-        $mensaje_error = $error;
-    }
-    ?>
-
-    <?php if ($mensaje_error): ?>
-        <div class="error"><?= htmlspecialchars($mensaje_error) ?></div>
+    <?php if ($error): ?>
+        <div class="error"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
     <form method="POST">
         <input type="text" name="usuario" placeholder="Nombre de usuario" required value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>" />

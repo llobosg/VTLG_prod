@@ -1,79 +1,64 @@
 <?php
 /**
- * Verificación de sesión para SIGA
- * Compatible con Railway (HTTPS, múltiples instancias)
+ * Verificación de sesión con almacenamiento en base de datos
+ * Compatible con Railway (múltiples instancias)
  */
 
-// Configuración segura de sesiones
-ini_set('session.cookie_secure', 1);        // Solo enviar en HTTPS
-ini_set('session.cookie_httponly', 1);      // No accesible desde JS
-ini_set('session.cookie_samesite', 'Strict'); // Protección CSRF
-ini_set('session.use_strict_mode', 1);      // Evitar session fixation
-ini_set('session.use_only_cookies', 1);     // No usar parámetros URL
+require_once 'config.php';
 
-// Configurar cookie de sesión
-session_set_cookie_params([
-    'lifetime' => 86400,   // 24 horas
-    'path' => '/',
-    'domain' => '',        // Usar dominio actual
-    'secure' => true,      // Solo HTTPS
-    'httponly' => true,    // No accesible desde JavaScript
-    'samesite' => 'Strict'
-]);
+// Configuración segura de cookies
+ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.use_strict_mode', 1);
+ini_set('session.use_only_cookies', 1);
 
-// Iniciar sesión
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Función auxiliar para destruir sesión y redirigir
-function destroySessionAndRedirect($message = '') {
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        $_SESSION = []; // Limpiar variables
-        session_destroy(); // Destruir datos del servidor
-    }
+// Inicializar sesión con base de datos
+try {
+    $pdo = getDBConnection();
+    $handler = new DBSessionHandler($pdo);
+    session_set_save_handler($handler, true);
     
-    // Limpiar cookies de sesión
-    if (isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 3600, '/', '', true, true);
-    }
+    session_set_cookie_params([
+        'lifetime' => 86400,   // 24 horas
+        'path' => '/',
+        'secure' => true,      // Solo HTTPS
+        'httponly' => true,    // No accesible desde JS
+        'samesite' => 'Strict'
+    ]);
     
-    // Redirigir a login
-    $loginUrl = '/login.php';
-    if ($message) {
-        $loginUrl .= '?error=' . urlencode($message);
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
     }
-    header('Location: ' . $loginUrl);
-    exit;
+} catch (Exception $e) {
+    error_log("Error al iniciar sesión: " . $e->getMessage());
+    session_start(); // Fallback
 }
 
 // Validar contexto CLI (Railway build)
 if (php_sapi_name() === 'cli') {
-    return; // Permitir inclusión sin error en build
+    return;
 }
 
-// Verificar que la sesión contenga los campos mínimos
-$requiredFields = ['user_id', 'rol'];
-foreach ($requiredFields as $field) {
-    if (!isset($_SESSION[$field]) || empty($_SESSION[$field])) {
-        destroySessionAndRedirect('Sesión inválida. Por favor, inicie sesión nuevamente.');
-    }
+// No validar sesión en login.php
+$current_page = basename($_SERVER['SCRIPT_NAME']);
+if ($current_page === 'login.php') {
+    return;
 }
 
-// Verificar tipos de datos
+// Verificar sesión en páginas protegidas
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['rol'])) {
+    session_destroy();
+    header('Location: /login.php?error=' . urlencode('Sesión expirada. Por favor, inicie sesión nuevamente.'));
+    exit;
+}
+
+// Validar tipos de datos
 if (!is_numeric($_SESSION['user_id']) || !in_array($_SESSION['rol'], ['admin', 'comercial', 'pricing', 'usuario'])) {
-    destroySessionAndRedirect('Datos de sesión corruptos.');
+    session_destroy();
+    header('Location: /login.php?error=' . urlencode('Datos de sesión inválidos.'));
+    exit;
 }
 
-// Regenerar ID de sesión periódicamente (cada 30 minutos)
-if (!isset($_SESSION['last_regenerated'])) {
-    $_SESSION['last_regenerated'] = time();
-}
-if (time() - $_SESSION['last_regenerated'] > 1800) { // 30 minutos
-    session_regenerate_id(true);
-    $_SESSION['last_regenerated'] = time();
-}
-
-// Todo OK: sesión válida
 return;
 ?>
