@@ -115,7 +115,7 @@ if (php_sapi_name() !== 'cli') {
 <!-- Submodal Transporte -->
 <div id="submodal-transporte" class="submodal" style="display: none;">
     <div class="submodal-content" style="max-width: 600px; padding: 1.8rem; position: relative;">
-        <span class="submodal-close" onclick="cerrarSubmodalTransporte()" style="position: absolute; top: 1.2rem; right: 1.2rem;">">×</span>
+        <span class="submodal-close" onclick="cerrarSubmodalTransporte()" style="position: absolute; top: 1.2rem; right: 1.2rem;"></span>
         <h3 style="margin: 0 0 1.4rem 0; font-size: 1.3rem;" id="submodal-titulo-transporte">
             <i class="fas fa-truck"></i> Nuevo Transporte
         </h3>
