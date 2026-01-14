@@ -145,7 +145,7 @@ $html = '
             <tr>
                 <td class="col1"><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></td>
                 <td class="col2"></td>
-                <td class="col3">NOTA DE COBRANZA</td>
+                <td class="col3">NOTA DE COBRANZA-</td>
             </tr>
             <tr>
                 <td class="col1">Casa matriz: Blanco 1623 of 1203 Valparaíso - Valparaíso</td>
@@ -157,7 +157,7 @@ $html = '
         <div class="box-right">
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
                 R.U.T.<br>
-                NOTA DE COBRANZA<br>
+                NOTA DE COBRANZA2<br>
                 Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
             </div>
         </div>
