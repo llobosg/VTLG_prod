@@ -536,44 +536,107 @@ function cargarRemesa(id) {
 
 function guardarRemesa() {
     const formData = new FormData();
-    const fields = [
-        'id_rms','tipo_rms','fecha_rms','mes_rms','tipo_cambio_rms','cliente_rms','id__clt_rms','contacto_rms',
-        'mercancia_rms','tramite_rms','aduana_rms','cia_transp_rms','motonave_rms',
-        'd_ad_valores_rms','impto_adicional_rms','almacenaje_rms','iva_rms','total_tesoreria_rms',
-        'valor_cif_rms','gastos_aga_rms','honorarios_rms','transm_edi_rms','gasto_local_rms',
-        'flete_local_rms','gate_in_rms','gastos_operativos_rms','poliza_contenedor_rms',
-        'seguro_carga_rms','gicona_rms','otros_rms','subtotal_gastos_operacionales_rms',
-        'iva_gastos_operacionales_rms','total_gastos_operacionales_rms', 'estado_rms', 'rendido_rms', 'saldo_rms', 
-        'despacho_rms','ref_clte_rms','total_tesoreria2_rms','total_gastos_operacionales2_rms','total_transferir_rms'
-    ];
-    fields.forEach(f => {
-        let val = document.getElementById(f)?.value || '';
-        if (document.getElementById(f)?.classList.contains('input-number')) {
-            val = parseNumber(val);
+    const id_rms = document.getElementById('id_rms').value;
+    
+    // Validaciones básicas
+    const requiredFields = ['cliente_rms', 'mercancia_rms', 'despacho_rms', 'fecha_rms'];
+    for (const field of requiredFields) {
+        const element = document.getElementById(field);
+        if (!element || !element.value.trim()) {
+            alert('❌ El campo ' + field + ' es obligatorio.');
+            return;
         }
-        formData.append(f, val);
-    });
+    }
 
-    fetch('/pages/remesa_logic.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('HTTP error ' + res.status);
-        return res.json();
-    })
-    .then(data => {
-        if (data.success) {
-            alert('✅ ' + data.message);
-            location.reload();
-        } else {
-            alert('❌ ' + data.message);
-        }
-    })
-    .catch(err => {
-        console.error('Error:', err);
-        alert('Error de conexión. Revisa la consola.');
-    });
+    // Obtener datos de mercancía
+    const mercanciaSeleccionada = window.getMercanciaSeleccionada?.() || null;
+    const mercanciaInputValue = (document.getElementById('mercancia_rms')?.value || '').trim();
+    
+    let mercanciaNombre = '';
+    if (mercanciaSeleccionada) {
+        mercanciaNombre = mercanciaSeleccionada.mercancia_mrcc;
+    } else if (mercanciaInputValue) {
+        mercanciaNombre = mercanciaInputValue;
+    }
+
+    // Preparar datos para envío
+    formData.append('action', id_rms ? 'actualizar_remesa' : 'crear_remesa');
+    formData.append('cliente_rms', document.getElementById('cliente_rms').value);
+    formData.append('mercancia_rms', mercanciaNombre); // Enviar nombre, no ID
+    formData.append('despacho_rms', document.getElementById('despacho_rms').value);
+    formData.append('ref_clte_rms', document.getElementById('ref_clte_rms').value || '');
+    formData.append('fecha_rms', document.getElementById('fecha_rms').value);
+    formData.append('mes_rms', document.getElementById('mes_rms').value);
+    formData.append('contacto_rms', document.getElementById('contacto_rms').value || '');
+    formData.append('aduana_rms', document.getElementById('aduana_rms').value || '');
+    formData.append('motonave_rms', document.getElementById('motonave_rms').value || '');
+    formData.append('tramite_rms', document.getElementById('tramite_rms').value || '');
+    formData.append('cia_transp_rms', document.getElementById('cia_transp_rms').value || '');
+
+    if (id_rms) {
+        formData.append('id_rms', id_rms);
+    }
+
+    fetch('/pages/remesa_logic.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Verificar si se ingresó una mercancía nueva
+                if (mercanciaInputValue && !mercanciaSeleccionada) {
+                    if (confirm('¿Desea agregar "' + mercanciaInputValue + '" al catálogo de mercancías?')) {
+                        // Guardar nueva mercancía
+                        const newMercData = new FormData();
+                        newMercData.append('action', 'crear_mercancia_catalogo');
+                        newMercData.append('mercancia_mrcc', mercanciaInputValue);
+                        
+                        fetch('/pages/mercancias_logic.php', { method: 'POST', body: newMercData })
+                            .then(r => r.json())
+                            .then(mercData => {
+                                if (mercData.success) {
+                                    alert('✅ Nueva mercancía agregada al catálogo.');
+                                } else {
+                                    alert('⚠️ ' + mercData.message);
+                                }
+                                // Redirigir
+                                if (data.id_rms) {
+                                    window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
+                                } else {
+                                    window.location.reload();
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Error al guardar mercancía:', err);
+                                // Redirigir igual
+                                if (data.id_rms) {
+                                    window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
+                                } else {
+                                    window.location.reload();
+                                }
+                            });
+                    } else {
+                        // No guardar, solo redirigir
+                        if (data.id_rms) {
+                            window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
+                        } else {
+                            window.location.reload();
+                        }
+                    }
+                } else {
+                    // Mercancía existente o vacía
+                    if (data.id_rms) {
+                        window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
+                    } else {
+                        window.location.reload();
+                    }
+                }
+            } else {
+                alert('❌ ' + (data.message || 'Error al guardar.'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('❌ Error de conexión.');
+        });
 }
 
 function abrirSubmodalAdjuntos() {
@@ -700,6 +763,103 @@ function confirmarEliminar(id) {
 function cerrarModal() {
     document.getElementById('modal-confirm').style.display = 'none';
 }
+
+// === BÚSQUEDA INTELIGENTE MERCANCÍAS ===
+(function() {
+    const input = document.getElementById('mercancia_rms');
+    if (!input) return;
+
+    let resultadosDiv = null;
+    let mercanciaSeleccionada = null;
+
+    // Crear contenedor de resultados
+    function crearResultados() {
+        if (resultadosDiv) return;
+        resultadosDiv = document.createElement('div');
+        resultadosDiv.style.cssText = `
+            position: absolute; z-index: 1000; background: white; border: 1px solid #ccc;
+            border-top: none; max-height: 200px; overflow-y: auto; width: 100%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;
+        `;
+        input.parentNode.appendChild(resultadosDiv);
+    }
+
+    // Cerrar resultados
+    function cerrarResultados() {
+        if (resultadosDiv) {
+            resultadosDiv.style.display = 'none';
+        }
+    }
+
+    // Manejar selección
+    function seleccionarMercancia(id, nombre) {
+        mercanciaSeleccionada = { id_mrcc: id, mercancia_mrcc: nombre };
+        input.value = nombre;
+        cerrarResultados();
+    }
+
+    // Evento de escritura
+    input.addEventListener('input', function() {
+        const term = this.value.trim();
+        cerrarResultados();
+
+        if (term.length < 2) {
+            mercanciaSeleccionada = null;
+            return;
+        }
+
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            fetch(`/api/get_mercancias_busqueda.php?term=${encodeURIComponent(term)}`)
+                .then(res => res.json())
+                .then(data => {
+                    crearResultados();
+                    if (!Array.isArray(data) || data.length === 0) {
+                        resultadosDiv.style.display = 'none';
+                        return;
+                    }
+
+                    resultadosDiv.innerHTML = '';
+                    data.forEach(item => {
+                        const el = document.createElement('div');
+                        el.style.cssText = `
+                            padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;
+                            font-size: 0.95rem;
+                        `;
+                        el.textContent = item.mercancia_mrcc;
+                        el.onclick = () => seleccionarMercancia(item.id_mrcc, item.mercancia_mrcc);
+                        resultadosDiv.appendChild(el);
+                    });
+                    resultadosDiv.style.display = 'block';
+                })
+                .catch(err => {
+                    console.error('Error en búsqueda de mercancías:', err);
+                    cerrarResultados();
+                });
+        }, 300);
+    });
+
+    // Al perder foco, verificar si es nuevo
+    input.addEventListener('blur', function() {
+        setTimeout(() => {
+            if (resultadosDiv) {
+                resultadosDiv.style.display = 'none';
+            }
+        }, 200);
+    });
+
+    // Guardar valor original para detectar cambios
+    input.dataset.valorOriginal = input.value;
+
+    // Exponer variable global para guardarRemesa()
+    window.getMercanciaSeleccionada = function() {
+        return mercanciaSeleccionada;
+    };
+
+    window.getMercanciaInputValue = function() {
+        return input.value;
+    };
+})();
 </script>
 </body>
 </html>

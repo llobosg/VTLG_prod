@@ -44,59 +44,156 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-// === Guardar o actualizar ===
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        $id = !empty($_POST['id_rms']) ? (int)$_POST['id_rms'] : null;
+/* ===============================
+   CREAR REMESA
+=============================== */
+if ($action === 'crear_remesa') {
+    $required = ['cliente_rms', 'mercancia_rms', 'despacho_rms', 'fecha_rms', 'mes_rms'];
+    foreach ($required as $field) {
+        if (empty($_POST[$field])) {
+            echo json_encode(['success' => false, 'message' => 'Campo requerido: ' . $field]);
+            exit;
+        }
+    }
 
-        // Validar campos obligatorios
-        $required = ['tipo_rms', 'fecha_rms'];
-        foreach ($required as $field) {
-            if (empty($_POST[$field])) {
-                echo json_encode(['success' => false, 'message' => 'Campo obligatorio faltante: ' . $field]);
-                exit;
+    try {
+        $pdo->beginTransaction();
+
+        // Buscar ID de mercancía si existe
+        $mercancia_id = null;
+        if (!empty($_POST['mercancia_rms'])) {
+            $stmt = $pdo->prepare("SELECT id_mrcc FROM mercancias WHERE mercancia_mrcc = ?");
+            $stmt->execute([$_POST['mercancia_rms']]);
+            $result = $stmt->fetch();
+            if ($result) {
+                $mercancia_id = $result['id_mrcc'];
             }
         }
 
-        // Preparar datos
-        $data = [
-            'tipo_rms' => $_POST['tipo_rms'],
-            'fecha_rms' => $_POST['fecha_rms'],
-            'mes_rms' => $_POST['mes_rms'] ?? '',
-            'tipo_cambio_rms' => !empty($_POST['tipo_cambio_rms']) ? (float)$_POST['tipo_cambio_rms'] : 0.00,
-            'cliente_rms' => !empty($_POST['cliente_rms']) ? (int)$_POST['cliente_rms'] : null,
-            'id_clt_rms' => !empty($_POST['cliente_rms']) ? (int)$_POST['cliente_rms'] : null, // ✅ Mismo valor
-            'contacto_rms' => $_POST['contacto_rms'] ?? '',
-            'despacho_rms' => $_POST['despacho_rms'] ?? '',
-            'ref_clte_rms' => $_POST['ref_clte_rms'] ?? '',
-            'aduana_rms' => $_POST['aduana_rms'] ?? '',
-            'cia_transp_rms' => !empty($_POST['cia_transp_rms']) ? (int)$_POST['cia_transp_rms'] : null,
-            'mercancia_rms' => !empty($_POST['mercancia_rms']) ? (int)$_POST['mercancia_rms'] : null,
-            'motonave_rms' => $_POST['motonave_rms'] ?? '',
-            'estado_rms' => 'Confeccion',
-        ];
+        // Insertar remesa
+        $stmt = $pdo->prepare("
+            INSERT INTO remesa (
+                cliente_rms,
+                mercancia_rms,
+                mercancia_nombre,
+                despacho_rms,
+                ref_clte_rms,
+                fecha_rms,
+                mes_rms,
+                contacto_rms,
+                aduana_rms,
+                motonave_rms,
+                tramite_rms,
+                cia_transp_rms,
+                estado_rms
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'creada')
+        ");
+        $stmt->execute([
+            $_POST['cliente_rms'],
+            $mercancia_id, // Puede ser NULL
+            $_POST['mercancia_rms'], // Nombre como texto
+            $_POST['despacho_rms'],
+            $_POST['ref_clte_rms'] ?? '',
+            $_POST['fecha_rms'],
+            $_POST['mes_rms'],
+            $_POST['contacto_rms'] ?? '',
+            $_POST['aduana_rms'] ?? '',
+            $_POST['motonave_rms'] ?? '',
+            $_POST['tramite_rms'] ?? '',
+            $_POST['cia_transp_rms'] ?? ''
+        ]);
 
-        // Construir consulta
-        $fields = array_keys($data);
-        $placeholders = str_repeat('?,', count($fields) - 1) . '?';
+        $id_rms = $pdo->lastInsertId();
+        $pdo->commit();
 
-        if ($id) {
-            // Actualizar
-            $set = implode(' = ?, ', $fields) . ' = ?';
-            $sql = "UPDATE remesa SET $set WHERE id_rms = ?";
-            $pdo->prepare($sql)->execute(array_merge(array_values($data), [$id]));
-            echo json_encode(['success' => true, 'message' => 'Remesa actualizada correctamente.']);
-        } else {
-            // Insertar
-            $sql = "INSERT INTO remesa (" . implode(', ', $fields) . ") VALUES ($placeholders)";
-            $pdo->prepare($sql)->execute(array_values($data));
-            echo json_encode(['success' => true, 'message' => 'Remesa creada correctamente.']);
-        }
+        echo json_encode([
+            'success' => true,
+            'id_rms' => $id_rms,
+            'message' => 'Remesa creada correctamente.'
+        ]);
+        exit;
+
     } catch (Exception $e) {
-        error_log("Error en remesa_logic: " . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Error interno.']);
+        $pdo->rollBack();
+        error_log("Error al crear remesa: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Error al crear la remesa.']);
+        exit;
     }
-    exit;
+}
+
+/* ===============================
+   ACTUALIZAR REMESA
+=============================== */
+if ($action === 'actualizar_remesa') {
+    if (empty($_POST['id_rms']) || !is_numeric($_POST['id_rms'])) {
+        echo json_encode(['success' => false, 'message' => 'ID de remesa inválido.']);
+        exit;
+    }
+
+    $required = ['cliente_rms', 'mercancia_rms', 'despacho_rms', 'fecha_rms', 'mes_rms'];
+    foreach ($required as $field) {
+        if (empty($_POST[$field])) {
+            echo json_encode(['success' => false, 'message' => 'Campo requerido: ' . $field]);
+            exit;
+        }
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // Buscar ID de mercancía si existe
+        $mercancia_id = null;
+        if (!empty($_POST['mercancia_rms'])) {
+            $stmt = $pdo->prepare("SELECT id_mrcc FROM mercancias WHERE mercancia_mrcc = ?");
+            $stmt->execute([$_POST['mercancia_rms']]);
+            $result = $stmt->fetch();
+            if ($result) {
+                $mercancia_id = $result['id_mrcc'];
+            }
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE remesa SET
+                cliente_rms = ?,
+                mercancia_rms = ?,
+                mercancia_nombre = ?,
+                despacho_rms = ?,
+                ref_clte_rms = ?,
+                fecha_rms = ?,
+                mes_rms = ?,
+                contacto_rms = ?,
+                aduana_rms = ?,
+                motonave_rms = ?,
+                tramite_rms = ?,
+                cia_transp_rms = ?
+            WHERE id_rms = ?
+        ");
+        $stmt->execute([
+            $_POST['cliente_rms'],
+            $mercancia_id, // Puede ser NULL
+            $_POST['mercancia_rms'], // Nombre como texto
+            $_POST['despacho_rms'],
+            $_POST['ref_clte_rms'] ?? '',
+            $_POST['fecha_rms'],
+            $_POST['mes_rms'],
+            $_POST['contacto_rms'] ?? '',
+            $_POST['aduana_rms'] ?? '',
+            $_POST['motonave_rms'] ?? '',
+            $_POST['tramite_rms'] ?? '',
+            $_POST['cia_transp_rms'] ?? '',
+            $_POST['id_rms']
+        ]);
+
+        $pdo->commit();
+        echo json_encode(['success' => true, 'message' => 'Remesa actualizada correctamente.']);
+        exit;
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error al actualizar remesa: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Error al actualizar la remesa.']);
+        exit;
+    }
 }
 
 header("Location: /pages/remesa_view.php");
