@@ -81,6 +81,7 @@ $html = '
             border: 1px solid #000;
             padding: 10px;
             margin-bottom: 16px;
+            margin-top: 16px; /* ← Baja todo el cuadro 1 línea */
         }
         table { width: 100%; border-collapse: collapse; margin: 6px 0; }
         th, td { padding: 4px; vertical-align: top; }
@@ -96,9 +97,23 @@ $html = '
         }
         .totals-row td { border-top: 1px solid #000; }
         .separator { height: 1px; background: #000; margin: 8px 0; }
+        .logo-box {
+            position: absolute;
+            left: 20px;
+            top: 0; /* ← Se mantiene en la parte superior absoluta de la página */
+            width: 120px;
+        }
+        .logo-box img {
+            width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
+<!-- LOGO SUPERIOR IZQUIERDO -->
+    <div class="logo-box">
+        <img src="' . $logoBase64 . '" alt="Logo LG">
+    </div>
 <div class="container" style="margin-bottom: 40px;">
     <div style="font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
     <div></div>
