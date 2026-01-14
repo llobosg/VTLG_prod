@@ -158,11 +158,11 @@ $html = '
 <div class="container">
 
     <!-- === SECCIÓN SUPERIOR (CABECERA + 4x4) === -->
+    <!-- LOGO SUPERIOR IZQUIERDO -->
+    <div class="logo-box">
+        <img src="' . $logoBase64 . '" alt="Logo LG">
+    </div>
     <div class="section-box">
-       <!-- LOGO SUPERIOR IZQUIERDO -->
-        <div class="logo-box">
-            <img src="' . $logoBase64 . '" alt="Logo LG">
-        </div>
         <!-- ESPACIO SEPARADOR DESPUÉS DEL LOGO -->
         <div class="header-spacer"></div>
         <div class="header-spacer"></div>
