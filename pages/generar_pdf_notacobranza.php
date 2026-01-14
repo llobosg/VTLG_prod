@@ -155,12 +155,12 @@ $html = '
     <div class="header">
         <!-- LOGO SUPERIOR IZQUIERDO -->
         <div class="logo-box">
-            <img src="includes/LogoLG.jpeg" alt="Logo LG">
+            <img src="/includes/LogoLG.jpeg" alt="Logo LG">
         </div>
 
         <!-- ESPACIO PARA BAJAR TEXTO 2 LÍNEAS -->
-        <div class="header-spacer"></div>
-        <div class="header-spacer"></div>
+        <div class="separator"></div>
+        <div class="separator"></div>
         <table class="header-table">
             <tr>
                 <td class="col1"></td>
