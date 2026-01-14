@@ -26,38 +26,38 @@ function getDBConnection() {
     return $pdo;
 }
 // === MANEJADOR DE SESIONES EN BASE DE DATOS ===
-class DBSessionHandler {
+class DBSessionHandler implements SessionHandlerInterface {
     private $pdo;
     
     public function __construct($pdo) {
         $this->pdo = $pdo;
     }
     
-    public function open($savePath, $sessionName) {
+    public function open(string $savePath, string $sessionName): bool {
         return true;
     }
     
-    public function close() {
+    public function close(): bool {
         return true;
     }
     
-    public function read($id) {
+    public function read(string $id): string {
         $stmt = $this->pdo->prepare("SELECT data FROM sessions WHERE id = ? AND timestamp > ?");
-        $stmt->execute([$id, time() - 86400]); // Sesión válida por 24h
+        $stmt->execute([$id, time() - 86400]);
         return $stmt->fetchColumn() ?: '';
     }
     
-    public function write($id, $data) {
+    public function write(string $id, string $data): bool {
         $stmt = $this->pdo->prepare("REPLACE INTO sessions (id, data, timestamp) VALUES (?, ?, ?)");
         return $stmt->execute([$id, $data, time()]);
     }
     
-    public function destroy($id) {
+    public function destroy(string $id): bool {
         $stmt = $this->pdo->prepare("DELETE FROM sessions WHERE id = ?");
         return $stmt->execute([$id]);
     }
     
-    public function gc($maxlifetime) {
+    public function gc(int $maxlifetime): int {
         $stmt = $this->pdo->prepare("DELETE FROM sessions WHERE timestamp < ?");
         $stmt->execute([time() - $maxlifetime]);
         return $stmt->rowCount();

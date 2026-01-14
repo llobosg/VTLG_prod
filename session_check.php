@@ -17,13 +17,13 @@ ini_set('session.use_only_cookies', 1);
 try {
     $pdo = getDBConnection();
     $handler = new DBSessionHandler($pdo);
-    session_set_save_handler($handler, true);
+    session_set_save_handler($handler, true); // ← Esto ahora funcionará
     
     session_set_cookie_params([
-        'lifetime' => 86400,   // 24 horas
+        'lifetime' => 86400,
         'path' => '/',
-        'secure' => true,      // Solo HTTPS
-        'httponly' => true,    // No accesible desde JS
+        'secure' => true,
+        'httponly' => true,
         'samesite' => 'Strict'
     ]);
     
