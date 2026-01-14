@@ -169,6 +169,8 @@ $html = '
                 R.U.T. 13.979.734-6<br>
                 NOTA DE COBRANZA<br>
                 Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
+                ***<br>
+                DOCUMENTO NO TRIBUTARIO<br>
             </div>
         </div>
         <!-- DOCUMENTO NO TRIBUTARIO (arriba del cuadro) -->
@@ -238,18 +240,18 @@ $html = '
     <div class="separator"></div>
     <div class="separator"></div>
 
-    <!-- CONCEPTO Y FECHA VENCIMIENTO -->
+    <!-- FECHA VENCIMIENTO y CONCEPTO -->
     <div style="margin: 12px 0; display: flex; gap: 20px;">
+        <div style="font-weight: bold; margin-bottom: 4px;">FECHA VENCIMIENTO:</div>
+        <div style="width: 10%;">
+            <div style="padding: 6px; border: 1px solid #000; text-align: center;">
+                ' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '
+            </div>
+        </div>
         <div style="width: 70%;">
             <div style="font-weight: bold; margin-bottom: 4px;">CONCEPTO:</div>
             <div style="padding: 6px; border: 1px solid #000; min-height: 24px;">
                 ' . htmlspecialchars($cabecera['concepto_nc'] ?? '') . '
-            </div>
-        </div>
-        <div style="width: 10%;">
-            <div style="font-weight: bold; margin-bottom: 4px;">FECHA VENCIMIENTO:</div>
-            <div style="padding: 6px; border: 1px solid #000; text-align: center;">
-                ' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '
             </div>
         </div>
     </div>
