@@ -112,10 +112,11 @@ $html = '
     <style>
         body { font-family: Arial, sans-serif; font-size: 10px; margin: 0; padding: 0; }
         .container { padding: 15px; }
-        .section-box {
+       .section-box {
             border: 1px solid #000;
             padding: 10px;
             margin-bottom: 16px;
+            margin-top: 16px; /* ← Baja todo el cuadro 1 línea */
         }
         table { 
             width: 100%; 
@@ -140,7 +141,7 @@ $html = '
         .logo-box {
             position: absolute;
             left: 20px;
-            top: 0;
+            top: 0; /* ← Se mantiene en la parte superior absoluta de la página */
             width: 120px;
         }
         .logo-box img {
