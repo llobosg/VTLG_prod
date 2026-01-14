@@ -162,7 +162,10 @@ $html = '
        <!-- LOGO SUPERIOR IZQUIERDO -->
         <div class="logo-box">
             <img src="' . $logoBase64 . '" alt="Logo LG">
-        </div>      
+        </div>
+        <!-- ESPACIO SEPARADOR DESPUÉS DEL LOGO -->
+        <div class="header-spacer"></div>
+        <div class="header-spacer"></div>
         <div style="margin-bottom: 10px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
             <h2 style="margin: 8px 0;">SOLICITUD DE REMESA</h2>
