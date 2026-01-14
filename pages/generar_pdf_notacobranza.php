@@ -140,29 +140,37 @@ $html = '
             <tr>
                 <td class="col1"></td>
                 <td class="col2"></td>
-                <td class="col3">R.U.T. 13.979.734-6</td>
+                <td class="col3"></td>
             </tr>
             <tr>
                 <td class="col1"><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></td>
                 <td class="col2"></td>
-                <td class="col3">NOTA DE COBRANZA-</td>
+                <td class="col3"></td>
             </tr>
             <tr>
                 <td class="col1">Casa matriz: Blanco 1623 of 1203 Valparaíso - Valparaíso</td>
                 <td class="col2"></td>
-                <td class="col3">Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '</td>
+                <td class="col3"></td>
             </tr>
         </table>
         <!-- Cuadro derecho CORREGIDO -->
         <div class="box-right">
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
-                R.U.T.<br>
+                ***<br>
+                R.U.T. 13.979.734-6<br>
                 NOTA DE COBRANZA2<br>
                 Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
             </div>
         </div>
     </div>
-
+    </div>
+    <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
+    <div style="position: relative; margin: 8px 0;">
+    <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
+        DOCUMENTO NO TRIBUTARIO
+    </div>
+    </div>
+    
     <!-- Separación -->
     <div class="separator"></div>
     <div class="separator"></div>
@@ -215,12 +223,7 @@ $html = '
     <div class="separator"></div>
     <div class="separator"></div>
 
-    <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
-    <div style="position: relative; margin: 8px 0;">
-        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
-            DOCUMENTO NO TRIBUTARIO
-        </div>
-    </div>
+    <!-- SECCIÓN MEDIO (DETALLE NOTA) -->
 
     <div class="separator"></div>
     <div class="separator"></div>
