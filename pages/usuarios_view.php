@@ -139,7 +139,7 @@ if (php_sapi_name() !== 'cli') {
 
             <div class="form-grid">
                 <div>
-                    <label for="nombre_usuario">Nombre Completo:</label>
+                    <label for="nombre_usuario">Usuario:</label>
                     <input type="text" id="nombre_usuario" required>
                 </div>
                 <div>
