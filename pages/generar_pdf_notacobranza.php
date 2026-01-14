@@ -157,25 +157,30 @@ $html = '
 
 <div class="container">
 
-<!-- ENCABEZADO EMPRESA -->
-<div style="position: relative;">
-<table class="header-table">
-<tr>
-    <td class="col1"></td>
-    <td class="col2"></td>
-    <td class="col3">R.U.T. 13.979.734-6</td>
-</tr>
-<tr>
-    <td class="col1"><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></td>
-    <td class="col2"></td>
-    <td class="col3"><strong>NOTA DE COBRANZA</strong></td>
-</tr>
-<tr>
-    <td class="col1">Casa matriz: Blanco 1623 Of. 1203 - Valparaíso</td>
-    <td class="col2"></td>
-    <td class="col3">N° ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '</td>
-</tr>
-</table>
+// === ENCABEZADO EMPRESA ===
+$html .= '
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+    <tr>
+        <td style="width: 60%; vertical-align: top;">
+            <div style="font-weight: bold; font-size: 14px;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
+            <div style="font-size: 12px;">RUT: 76.985.432-1</div>
+            <div style="font-size: 12px;">Av. Los Carrera 0875, Of. 502, Santiago</div>
+            <div style="font-size: 12px;">Fono: +56 2 2345 6789</div>
+        </td>
+        <td style="width: 40%; vertical-align: top;">
+            <!-- MARCO CENTRADO -->
+            <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; height: 60px;">
+                <tr>
+                    <td style="text-align: center; vertical-align: middle; font-weight: bold; font-size: 12px; border-top: 1px solid #000; border-bottom: 1px solid #000;">
+                        RUT<br>NOTA DE COBRANZA<br>' . htmlspecialchars($nota['nro_nc']) . '
+                    </td>
+                </tr>
+            </table>
+            <!-- DOCUMENTO NO TRIBUTARIO -->
+            <div style="text-align: center; font-size: 10px; margin-top: 2px;">DOCUMENTO NO TRIBUTARIO</div>
+        </td>
+    </tr>
+</table>';
 <div class="box-right"></div>
 </div>
 
@@ -211,26 +216,22 @@ $html = '
 </table>
 
 <div class="spacer"></div><div class="spacer"></div>
-
-<div style="text-align:right; font-weight:bold;">
-DOCUMENTO NO TRIBUTARIO
-</div>
-
 <div class="spacer"></div><div class="spacer"></div>
 
-<!-- DETALLE -->
-<table class="detail-table">
-<thead>
-<tr>
-    <th>Ítem</th>
-    <th>Proveedor</th>
-    <th>N° Docto</th>
-    <th>Monto Neto</th>
-    <th>Monto IVA</th>
-    <th>Monto</th>
-</tr>
-</thead>
-<tbody>
+// === DETALLE DE LA NOTA ===
+$html .= '
+<table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #000; padding: 4px; text-align: center;">ÍTEM</th>
+            <th style="border: 1px solid #000; padding: 4px; text-align: center;">PROVEEDOR</th>
+            <th style="border: 1px solid #000; padding: 4px; text-align: center;">NRO. DOCTO.</th>
+            <th style="border: 1px solid #000; padding: 4px; text-align: center;">NETO</th>
+            <th style="border: 1px solid #000; padding: 4px; text-align: center;">IVA</th>
+            <th style="border: 1px solid #000; padding: 4px; text-align: center;">MONTO</th>
+        </tr>
+    </thead>
+    <tbody>';
 ';
 
 foreach ($detalles as $d) {
