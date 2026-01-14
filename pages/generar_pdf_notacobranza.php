@@ -41,6 +41,15 @@ if (!$cabecera) {
 $stmt = $pdo->prepare("SELECT * FROM detalle_nc WHERE id_cabecera = ? ORDER BY id_detalle");
 $stmt->execute([$id_cabecera]);
 $detalles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Calcular totales desde los detalles
+$total_neto = 0;
+$total_iva = 0;
+$total_monto = 0;
+foreach ($detalles as $d) {
+    $total_neto += (float)$d['montoneto_detalle'];
+    $total_iva += (float)$d['montoiva_detalle'];
+    $total_monto += (float)$d['monto_detalle'];
+}
 
 function fmt($val) {
     return number_format($val, 0, ',', '.');
@@ -267,23 +276,11 @@ $html = '
                     <td style="text-align: right;">' . fmt($d['monto_detalle']) . '</td>
                 </tr>';
             }, $detalles)) . '
-            <!-- Calcular totales desde los detalles -->
-            <?php
-            $total_neto = 0;
-            $total_iva = 0;
-            $total_monto = 0;
-            foreach ($detalles as $d) {
-                $total_neto += (float)$d['montoneto_detalle'];
-                $total_iva += (float)$d['montoiva_detalle'];
-                $total_monto += (float)$d['monto_detalle'];
-            }
-            ?>
-
             <tr class="totals-row">
                 <td colspan="3" style="text-align: right; font-weight: bold;">TOTALES:</td>
-                <td style="text-align: right;">$<?= number_format($total_neto, 0, ',', '.') ?></td>
-                <td style="text-align: right;">$<?= number_format($total_iva, 0, ',', '.') ?></td>
-                <td style="text-align: right;">$<?= number_format($total_monto, 0, ',', '.') ?></td>
+                <td>$' . number_format($total_neto, 0, ',', '.') . '</td>
+                <td>$' . number_format($total_iva, 0, ',', '.') . '</td>
+                <td>$' . number_format($total_monto, 0, ',', '.') . '</td>
             </tr>
         </tbody>
     </table>
