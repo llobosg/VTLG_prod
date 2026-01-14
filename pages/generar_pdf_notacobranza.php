@@ -164,17 +164,9 @@ $html = '
         <div class="separator"></div>
         <div class="separator"></div>
         <div class="separator"></div>
+        <div class="separator"></div>
+        <div class="separator"></div>
         <table class="header-table">
-            <tr>
-                <td class="col1"></td>
-                <td class="col2"></td>
-                <td class="col3"></td>
-            </tr>
-            <tr>
-                <td class="col1"></td>
-                <td class="col2"></td>
-                <td class="col3"></td>
-            </tr>
             <tr>
                 <td class="col1"><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></td>
                 <td class="col2"></td>
