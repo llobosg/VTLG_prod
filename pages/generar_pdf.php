@@ -93,6 +93,16 @@ if (!file_exists($logoPath)) {
     error_log('Logo no encontrado en: ' . $logoPath);
     $logoPath = '';
 }
+$logoFile = __DIR__ . '/../includes/LogoLG.jpeg';
+
+$logoBase64 = '';
+if (file_exists($logoFile)) {
+    $imageData = file_get_contents($logoFile);
+    $logoBase64 = 'data:image/jpeg;base64,' . base64_encode($imageData);
+} else {
+    error_log('Logo NO encontrado en: ' . $logoFile);
+}
+
 
 $html = '
 <!DOCTYPE html>
@@ -151,7 +161,7 @@ $html = '
     <div class="section-box">
        <!-- LOGO SUPERIOR IZQUIERDO -->
         <div class="logo-box">
-            <img src="' . $logoPath . '" alt="Logo LG">
+            <img src="' . $logoBase64 . '" alt="Logo LG">
         </div>      
         <div style="margin-bottom: 10px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>

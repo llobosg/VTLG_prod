@@ -120,7 +120,7 @@ $tramites = [
 
         <!-- LOGO + TÍTULO + TIPO (alineados arriba) -->
         <div style="display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 1.2rem;">
-            <img src="/includes/logo.png" alt="Logo SIGA_LG" style="height: 60px;">
+            <img src="/includes/LogoLG.jpeg" alt="Logo SIGA_LG" style="height: 60px;">
 
             <div style="display: flex; align-items: center; gap: 2rem;">
                 <h3 style="margin: 0; font-size: 1.4rem;">SOLICITUD DE REMESA</h3>
