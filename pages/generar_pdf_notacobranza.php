@@ -161,6 +161,9 @@ $html = '
         <!-- ESPACIO PARA BAJAR TEXTO 2 LÍNEAS -->
         <div class="separator"></div>
         <div class="separator"></div>
+        <div class="separator"></div>
+        <div class="separator"></div>
+        <div class="separator"></div>
         <table class="header-table">
             <tr>
                 <td class="col1"></td>
