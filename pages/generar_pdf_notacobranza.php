@@ -140,7 +140,23 @@ $html = '
 <div class="container">
     <!-- SECCIÓN SUPERIOR NUEVA -->
     <div class="header">
+        <?php
+            // Cargar logo como base64
+            $logoPath = __DIR__ . '/../includes/LogoLG.jpeg';
+            $logoBase64 = '';
+            if (file_exists($logoPath)) {
+                $logoData = file_get_contents($logoPath);
+                $logoBase64 = 'data:image/jpeg;base64,' . base64_encode($logoData);
+            }
+        ?>
         <table class="header-table">
+            <tr>
+                <td class="col1" style="vertical-align: top; padding-right: 10px;">
+                    <?php if ($logoBase64): ?>
+                        <img src="<?= $logoBase64 ?>" alt="Logo" style="height: 40px; width: auto;">
+                    <?php endif; ?>
+                </td>
+            </tr>
             <tr>
                 <td class="col1"></td>
                 <td class="col2"></td>
@@ -174,14 +190,13 @@ $html = '
         </div>
     </div>
 </div>
-    <!-- aqui no -->
     <!-- Separación -->
     <div class="separator"></div>
     <div class="separator"></div>
     <div class="separator"></div>
     <div class="separator"></div>
 
-    <!-- SECCIÓN SUPERIOR ACTUAL (CLIENTE) -->
+    <!-- SECCIÓN SUPERIOR -->
     <div class="header">
         <table class="header-table">
             <tr>
@@ -267,7 +282,7 @@ $html = '
                 return '<tr>
                     <td>' . htmlspecialchars($d['item_detalle']) . '</td>
                     <td>' . htmlspecialchars($d['proveedor_detalle']) . '</td>
-                    <td>' . htmlspecialchars($d['nro_doc_detalle']) . '</td>
+                    <td style="text-align: center;">' . htmlspecialchars($d['nro_doc_detalle']) . '</td>
                     <td style="text-align: right;">' . fmt($d['montoneto_detalle']) . '</td>
                     <td style="text-align: right;">' . fmt($d['montoiva_detalle']) . '</td>
                     <td style="text-align: right;">' . fmt($d['monto_detalle']) . '</td>
