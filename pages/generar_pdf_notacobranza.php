@@ -190,11 +190,6 @@ $html = '
         </div>
     </div>
 </div>
-    <!-- Separación -->
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
-    <div class="separator"></div>
 
     <!-- SECCIÓN SUPERIOR -->
     <div class="header">
