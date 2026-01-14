@@ -215,6 +215,27 @@ function eliminarMercancia(id) {
             });
     }
 }
+
+// Detectar sesión inválida desde el frontend
+window.addEventListener('load', function() {
+    // Si hay un mensaje de "Sesión inválida" en el cuerpo, redirigir
+    if (document.body.innerText.includes('Sesión inválida') || 
+        document.body.innerHTML.includes('faltan user_id')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        alert('Sesión expirada. Por favor, inicie sesión nuevamente.');
+        window.location.href = '/login.php';
+    }
+    
+    // Timeout de seguridad (opcional)
+    setTimeout(() => {
+        if (document.readyState === 'complete' && 
+            !document.querySelector('.container, .card, table')) {
+            console.warn('Página sin contenido. Recargando...');
+            window.location.reload();
+        }
+    }, 10000);
+});
 </script>
 </body>
 </html>
