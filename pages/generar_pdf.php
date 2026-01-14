@@ -76,14 +76,23 @@ function fmtDecimal($val) {
 
 $options = new Options();
 $options->set('defaultFont', 'Arial');
-$options->set('isRemoteEnabled', false);
 $options->set('isPhpEnabled', false);
 $options->set('isJavascriptEnabled', false);
 $options->set('isHtml5ParserEnabled', true);
 $options->set('enableRemote', false);
 $options->set('debugKeepTemp', false);
+$options->set('isRemoteEnabled', false);
+$options->set('enableRemote', false);
+
 
 $dompdf = new Dompdf($options);
+
+$logoPath = $_SERVER['DOCUMENT_ROOT'] . '/includes/LogoLG.jpeg';
+
+if (!file_exists($logoPath)) {
+    error_log('Logo no encontrado en: ' . $logoPath);
+    $logoPath = '';
+}
 
 $html = '
 <!DOCTYPE html>
@@ -142,7 +151,7 @@ $html = '
     <div class="section-box">
        <!-- LOGO SUPERIOR IZQUIERDO -->
         <div class="logo-box">
-            <img src="../includes/LogoLG.jpeg" alt="Logo LG">
+            <img src="' . $logoPath . '" alt="Logo LG">
         </div>      
         <div style="margin-bottom: 10px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
