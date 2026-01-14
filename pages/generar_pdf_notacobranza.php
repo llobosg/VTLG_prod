@@ -165,12 +165,13 @@ $html = '
         <!-- Cuadro derecho CORREGIDO -->
         <div class="box-right">
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
+                ***<br>
                 R.U.T. 13.979.734-6<br>
                 NOTA DE COBRANZA<br>
                 Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
             </div>
         </div>
-        <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
+        <!-- DOCUMENTO NO TRIBUTARIO (arriba del cuadro) -->
         <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
             DOCUMENTO NO TRIBUTARIO
         </div>
@@ -245,7 +246,7 @@ $html = '
                 ' . htmlspecialchars($cabecera['concepto_nc'] ?? '') . '
             </div>
         </div>
-        <div style="width: 30%;">
+        <div style="width: 10%;">
             <div style="font-weight: bold; margin-bottom: 4px;">FECHA VENCIMIENTO:</div>
             <div style="padding: 6px; border: 1px solid #000; text-align: center;">
                 ' . htmlspecialchars($cabecera['fecha_vence_nc'] ?? '') . '
@@ -278,9 +279,9 @@ $html = '
             }, $detalles)) . '
             <tr class="totals-row">
                 <td colspan="3" style="text-align: right; font-weight: bold;">TOTALES:</td>
-                <td>$' . number_format($total_neto, 0, ',', '.') . '</td>
-                <td>$' . number_format($total_iva, 0, ',', '.') . '</td>
-                <td>$' . number_format($total_monto, 0, ',', '.') . '</td>
+                <td style="text-align: right;">$' . number_format($total_neto, 0, ',', '.') . '</td>
+                <td style="text-align: right;">$' . number_format($total_iva, 0, ',', '.') . '</td>
+                <td style="text-align: right;">$' . number_format($total_monto, 0, ',', '.') . '</td>
             </tr>
         </tbody>
     </table>
