@@ -156,17 +156,15 @@ $html = '
         <!-- Cuadro derecho CORREGIDO -->
         <div class="box-right">
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000;">
-                ***<br>
                 R.U.T. 13.979.734-6<br>
                 NOTA DE COBRANZA<br>
                 Nº: ' . htmlspecialchars($cabecera['nro_nc'] ?? '') . '
             </div>
-            <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
-            <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
-                DOCUMENTO NO TRIBUTARIO
-            </div>
         </div>
-        <!-- aqui se ve al inicio del cuadro, pegado arriba -->
+        <!-- DOCUMENTO NO TRIBUTARIO (justo debajo del cuadro) -->
+        <div style="position: absolute; right: 20px; width: 40%; text-align: center; font-size: 9px; font-weight: bold; top: 0;">
+            DOCUMENTO NO TRIBUTARIO
+        </div>
     </div>
 </div>
     <!-- aqui no -->
@@ -245,7 +243,7 @@ $html = '
             </div>
         </div>
     </div>
-    
+
     <!-- DETALLE DE LA NOTA -->
     <table class="detail-table">
         <thead>
@@ -269,13 +267,23 @@ $html = '
                     <td style="text-align: right;">' . fmt($d['monto_detalle']) . '</td>
                 </tr>';
             }, $detalles)) . '
+            <!-- Calcular totales desde los detalles -->
+            <?php
+            $total_neto = 0;
+            $total_iva = 0;
+            $total_monto = 0;
+            foreach ($detalles as $d) {
+                $total_neto += (float)$d['montoneto_detalle'];
+                $total_iva += (float)$d['montoiva_detalle'];
+                $total_monto += (float)$d['monto_detalle'];
+            }
+            ?>
+
             <tr class="totals-row">
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>' . fmt($cabecera['total_neto_nc']) . '</td>
-                <td>' . fmt($cabecera['total_iva_nc']) . '</td>
-                <td>' . fmt($cabecera['total_monto_nc']) . '</td>
+                <td colspan="3" style="text-align: right; font-weight: bold;">TOTALES:</td>
+                <td style="text-align: right;">$<?= number_format($total_neto, 0, ',', '.') ?></td>
+                <td style="text-align: right;">$<?= number_format($total_iva, 0, ',', '.') ?></td>
+                <td style="text-align: right;">$<?= number_format($total_monto, 0, ',', '.') ?></td>
             </tr>
         </tbody>
     </table>
