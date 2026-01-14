@@ -351,11 +351,11 @@ $html = '
             </tr>
             <tr>
                 <td><strong>TITULAR:</strong> AGENCIA DE ADUANAS LUIS GALLEGUILLOS V.</td>
-                <td><strong>CTA. CTE. NRO.:</strong> 82323058</td>
+                <td><strong>CTA. CTE. NRO.:</strong> **</td>
             </tr>
             <tr>
                 <td><strong>RUT:</strong> 13.979.734-6</td>
-                <td><strong>BANCO:</strong> SANTANDER</td>
+                <td><strong>BANCO:</strong> **</td>
             </tr>
         </table>
     </div>
