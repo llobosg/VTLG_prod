@@ -134,12 +134,33 @@ $html = '
             width: 100%;
         }
         .separator { height: 8px; }
+        .logo-box {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            width: 120px;
+        }
+        .logo-box img {
+            width: 100%;
+            height: auto;
+        }
+        .header-spacer {
+            height: 28px; /* ≈ 2 líneas */
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <!-- SECCIÓN SUPERIOR NUEVA -->
     <div class="header">
+        <!-- LOGO SUPERIOR IZQUIERDO -->
+        <div class="logo-box">
+            <img src="includes/LogoLG.jpeg" alt="Logo LG">
+        </div>
+
+        <!-- ESPACIO PARA BAJAR TEXTO 2 LÍNEAS -->
+        <div class="header-spacer"></div>
+        <div class="header-spacer"></div>
         <table class="header-table">
             <tr>
                 <td class="col1"></td>
