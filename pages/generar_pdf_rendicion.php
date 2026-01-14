@@ -69,6 +69,21 @@ $options->set('defaultFont', 'Arial');
 $options->set('chroot', $_SERVER['DOCUMENT_ROOT'] ?? '/app');
 $dompdf = new Dompdf($options);
 
+$logoPath = $_SERVER['DOCUMENT_ROOT'] . '/includes/LogoLG.jpeg';
+
+if (!file_exists($logoPath)) {
+    error_log('Logo no encontrado en: ' . $logoPath);
+    $logoPath = '';
+}
+$logoFile = __DIR__ . '/../includes/LogoLG.jpeg';
+
+$logoBase64 = '';
+if (file_exists($logoFile)) {
+    $imageData = file_get_contents($logoFile);
+    $logoBase64 = 'data:image/jpeg;base64,' . base64_encode($imageData);
+} else {
+    error_log('Logo NO encontrado en: ' . $logoFile);
+}
 $html = '
 <!DOCTYPE html>
 <html>
