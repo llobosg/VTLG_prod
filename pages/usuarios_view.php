@@ -14,7 +14,22 @@ if (php_sapi_name() !== 'cli') {
     try {
         $pdo = getDBConnection();
         if ($pdo) {
-            $stmt = $pdo->query("SELECT * FROM usuarios ORDER BY nombre_usuario");
+            // Verificar si existe columna 'activo', si no, agregarla
+            $check = $pdo->query("SHOW COLUMNS FROM usuarios LIKE 'activo'");
+            if (!$check->fetch()) {
+                $pdo->exec("ALTER TABLE usuarios ADD COLUMN activo TINYINT(1) NOT NULL DEFAULT 1 AFTER rol_usr");
+            }
+
+            $stmt = $pdo->query("
+                SELECT 
+                    id_usr AS id_usuario,
+                    nombre_usr AS nombre_usuario,
+                    nombre_usr AS usuario,
+                    rol_usr AS rol,
+                    activo
+                FROM usuarios 
+                ORDER BY nombre_usr
+            ");
             $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } catch (Exception $e) {
@@ -27,7 +42,7 @@ if (php_sapi_name() !== 'cli') {
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name=" punitive="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestión de Usuarios - SIGA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
@@ -43,7 +58,7 @@ if (php_sapi_name() !== 'cli') {
             margin-bottom: 0.3rem;
             display: block;
         }
-        .form-grid input {
+        .form-grid input, .form-grid select {
             width: 100%;
             padding: 0.5rem;
             border: 1px solid #ddd;
@@ -128,14 +143,6 @@ if (php_sapi_name() !== 'cli') {
                     <input type="text" id="nombre_usuario" required>
                 </div>
                 <div>
-                    <label for="usuario">Nombre de Usuario:</label>
-                    <input type="text" id="usuario" required>
-                </div>
-                <div>
-                    <label for="password">Contraseña:</label>
-                    <input type="password" id="password" <?= !isset($_GET['id']) ? 'required' : '' ?>>
-                </div>
-                <div>
                     <label for="rol">Rol:</label>
                     <select id="rol" required>
                         <option value="admin">Administrador</option>
@@ -143,6 +150,10 @@ if (php_sapi_name() !== 'cli') {
                         <option value="pricing">Pricing</option>
                         <option value="usuario">Usuario</option>
                     </select>
+                </div>
+                <div>
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" required>
                 </div>
                 <div>
                     <label for="activo">Activo:</label>
@@ -170,9 +181,8 @@ function abrirSubmodalUsuario() {
     document.getElementById('submodal-titulo-usuario').innerHTML = '<i class="fas fa-user-plus"></i> Nuevo Usuario';
     document.getElementById('id_usuario').value = '';
     document.getElementById('nombre_usuario').value = '';
-    document.getElementById('usuario').value = '';
-    document.getElementById('password').value = '';
     document.getElementById('rol').value = 'usuario';
+    document.getElementById('password').value = '';
     document.getElementById('activo').value = '1';
     document.getElementById('submodal-usuario').style.display = 'flex';
 }
@@ -186,8 +196,7 @@ function guardarUsuario() {
     const id_usuario = document.getElementById('id_usuario').value;
     
     formData.append('action', id_usuario ? 'actualizar_usuario' : 'crear_usuario');
-    formData.append('nombre_usuario', document.getElementById('nombre_usuario').value);
-    formData.append('usuario', document.getElementById('usuario').value);
+    formData.append('nombre_usuario', document.getElementById('nombre_usuario').value.trim());
     formData.append('rol', document.getElementById('rol').value);
     formData.append('activo', document.getElementById('activo').value);
     
@@ -216,8 +225,25 @@ function guardarUsuario() {
 }
 
 function editarUsuario(id) {
-    // En producción, cargar datos vía API. Aquí recargamos para simplicidad.
-    alert('Edición no implementada en esta versión de ejemplo (implementar con API).');
+    fetch(`/pages/usuarios_logic.php?action=obtener_usuario&id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data || !data.id_usuario) {
+                alert('❌ No se pudo cargar el usuario.');
+                return;
+            }
+            document.getElementById('submodal-titulo-usuario').innerHTML = '<i class="fas fa-user-edit"></i> Editar Usuario';
+            document.getElementById('id_usuario').value = data.id_usuario;
+            document.getElementById('nombre_usuario').value = data.nombre_usuario;
+            document.getElementById('rol').value = data.rol;
+            document.getElementById('activo').value = data.activo;
+            document.getElementById('password').value = ''; // No se muestra la contraseña
+            document.getElementById('submodal-usuario').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Error al cargar usuario:', err);
+            alert('❌ Error al cargar el usuario.');
+        });
 }
 
 function eliminarUsuario(id) {
