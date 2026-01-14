@@ -8,40 +8,18 @@ if ($rol !== 'admin' && $rol !== 'comercial' && $rol !== 'pricing') {
     exit('Acceso denegado.');
 }
 
-// Cargar datos solo en contexto web (no durante build)
+// Cargar catálogo global de transporte
 $transportes = [];
-$vehiculos = [];
-$choferes = [];
-
 if (php_sapi_name() !== 'cli') {
     try {
         $pdo = getDBConnection();
         if ($pdo) {
-            // Cargar lista de transportes
-            $stmt = $pdo->query("
-                SELECT 
-                    t.*,
-                    v.patente_veh AS vehiculo_patente,
-                    p.nombre_per AS chofer_nombre
-                FROM transporte t
-                LEFT JOIN vehiculos v ON t.id_vehiculo_transporte = v.id_veh
-                LEFT JOIN personal p ON t.id_chofer_transporte = p.id_per
-                ORDER BY t.id_transporte DESC
-            ");
+            $stmt = $pdo->query("SELECT id_trnsprt, transporte_trnsprt, contacto_trnsprt, fono_trnsprt FROM transporte ORDER BY transporte_trnsprt");
             $transportes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Cargar listas para desplegables
-            $stmt = $pdo->query("SELECT id_veh, patente_veh, tipo_veh FROM vehiculos ORDER BY patente_veh");
-            $vehiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $stmt = $pdo->query("SELECT id_per, nombre_per, rut_per FROM personal WHERE tipo_personal = 'Chofer' ORDER BY nombre_per");
-            $choferes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } catch (Exception $e) {
-        error_log("Error al cargar transporte: " . $e->getMessage());
+        error_log("Error al cargar catálogo de transporte: " . $e->getMessage());
         $transportes = [];
-        $vehiculos = [];
-        $choferes = [];
     }
 }
 ?>
@@ -50,36 +28,35 @@ if (php_sapi_name() !== 'cli') {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestión de Transporte - SIGA</title>
+    <title>Catálogo de Transporte - SIGA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <link rel="stylesheet" href="/styles.css">
     <style>
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .form-grid label {
-            font-weight: bold;
-            margin-bottom: 0.3rem;
-            display: block;
-        }
-        .form-grid select, .form-grid input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.2rem;
         }
-        .table-container th:nth-child(4),
-        .table-container td:nth-child(4) {
-            min-width: 180px;
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-grid.full-width {
+            grid-template-columns: 1fr;
+        }
+        .form-grid label {
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+        .form-grid input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -88,7 +65,7 @@ if (php_sapi_name() !== 'cli') {
 <div class="container">
     <div class="card-header">
         <h2 style="font-weight: bold;">
-            <i class="fas fa-truck"></i> Gestión de Transporte
+            <i class="fas fa-truck"></i> Catálogo de Transporte
         </h2>
         <button class="btn-primary" onclick="abrirSubmodalTransporte()">
             <i class="fas fa-plus"></i> Nuevo Transporte
@@ -101,24 +78,24 @@ if (php_sapi_name() !== 'cli') {
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Vehículo</th>
-                    <th>Chofer</th>
-                    <th>Tipo Transporte</th>
+                    <th>Empresa</th>
+                    <th>Contacto</th>
+                    <th>Teléfono</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($transportes as $t): ?>
                 <tr>
-                    <td><?= (int)$t['id_transporte'] ?></td>
-                    <td><?= htmlspecialchars($t['vehiculo_patente'] ?? '–') ?></td>
-                    <td><?= htmlspecialchars($t['chofer_nombre'] ?? '–') ?></td>
-                    <td><?= htmlspecialchars($t['tipo_transporte'] ?? '–') ?></td>
+                    <td><?= (int)$t['id_trnsprt'] ?></td>
+                    <td><?= htmlspecialchars($t['transporte_trnsprt'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($t['contacto_trnsprt'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($t['fono_trnsprt'] ?? '') ?></td>
                     <td>
-                        <a href="#" class="btn-edit" title="Editar" onclick="editarTransporte(<?= $t['id_transporte'] ?>)">
+                        <a href="#" class="btn-edit" title="Editar" onclick="editarTransporte(<?= $t['id_trnsprt'] ?>)">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <a href="#" class="btn-delete" title="Eliminar" onclick="eliminarTransporte(<?= $t['id_transporte'] ?>)">
+                        <a href="#" class="btn-delete" title="Eliminar" onclick="eliminarTransporte(<?= $t['id_trnsprt'] ?>)">
                             <i class="fas fa-trash-alt"></i>
                         </a>
                     </td>
@@ -130,58 +107,51 @@ if (php_sapi_name() !== 'cli') {
     <?php else: ?>
         <div class="card" style="text-align: center; padding: 2rem;">
             <i class="fas fa-truck" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
-            <p>No hay registros de transporte.</p>
+            <p>No hay registros de transporte en el catálogo.</p>
         </div>
     <?php endif; ?>
 </div>
 
 <!-- Submodal Transporte -->
 <div id="submodal-transporte" class="submodal" style="display: none;">
-    <div class="submodal-content" style="max-width: 550px; padding: 1.8rem; position: relative;">
-        <span class="submodal-close" onclick="cerrarSubmodalTransporte()" style="position: absolute; top: 1.2rem; right: 1.2rem;">×</span>
+    <div class="submodal-content" style="max-width: 600px; padding: 1.8rem; position: relative;">
+        <span class="submodal-close" onclick="cerrarSubmodalTransporte()" style="position: absolute; top: 1.2rem; right: 1.2rem;">">×</span>
         <h3 style="margin: 0 0 1.4rem 0; font-size: 1.3rem;" id="submodal-titulo-transporte">
             <i class="fas fa-truck"></i> Nuevo Transporte
         </h3>
 
         <form id="form-transporte">
-            <input type="hidden" id="id_transporte">
+            <input type="hidden" id="id_trnsprt">
 
             <div class="form-grid">
                 <div>
-                    <label for="id_vehiculo_transporte">Vehículo:</label>
-                    <select id="id_vehiculo_transporte" required>
-                        <option value="">-- Seleccione --</option>
-                        <?php foreach ($vehiculos as $v): ?>
-                            <option value="<?= (int)$v['id_veh'] ?>">
-                                <?= htmlspecialchars($v['patente_veh'] . ' (' . $v['tipo_veh'] . ')') ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label for="transporte_trnsprt">Empresa de Transporte:</label>
+                    <input type="text" id="transporte_trnsprt" required>
                 </div>
                 <div>
-                    <label for="id_chofer_transporte">Chofer:</label>
-                    <select id="id_chofer_transporte" required>
-                        <option value="">-- Seleccione --</option>
-                        <?php foreach ($choferes as $p): ?>
-                            <option value="<?= (int)$p['id_per'] ?>">
-                                <?= htmlspecialchars($p['nombre_per'] . ' - ' . $p['rut_per']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label for="contacto_trnsprt">Contacto:</label>
+                    <input type="text" id="contacto_trnsprt">
                 </div>
                 <div>
-                    <label for="tipo_transporte">Tipo de Transporte:</label>
-                    <select id="tipo_transporte" required>
-                        <option value="Terrestre">Terrestre</option>
-                        <option value="Marítimo">Marítimo</option>
-                        <option value="Aéreo">Aéreo</option>
-                    </select>
+                    <label for="fono_trnsprt">Teléfono:</label>
+                    <input type="text" id="fono_trnsprt">
+                </div>
+                <div>
+                    <label for="email_trnsprt">Email:</label>
+                    <input type="email" id="email_trnsprt">
+                </div>
+            </div>
+
+            <div class="form-grid full-width">
+                <div>
+                    <label for="direccion_trnsprt">Dirección:</label>
+                    <input type="text" id="direccion_trnsprt">
                 </div>
             </div>
 
             <div style="text-align: right; display: flex; gap: 0.8rem; justify-content: flex-end;">
                 <button type="button" class="btn-primary" onclick="guardarTransporte()" style="padding: 0.55rem 1.4rem;">
-                    <i class="fas fa-save"></i> Guardar Transporte
+                    <i class="fas fa-save"></i> Guardar
                 </button>
                 <button type="button" class="btn-secondary" onclick="cerrarSubmodalTransporte()" style="padding: 0.55rem 1.4rem;">
                     Cerrar
@@ -194,10 +164,12 @@ if (php_sapi_name() !== 'cli') {
 <script>
 function abrirSubmodalTransporte() {
     document.getElementById('submodal-titulo-transporte').innerHTML = '<i class="fas fa-truck"></i> Nuevo Transporte';
-    document.getElementById('id_transporte').value = '';
-    document.getElementById('id_vehiculo_transporte').value = '';
-    document.getElementById('id_chofer_transporte').value = '';
-    document.getElementById('tipo_transporte').value = 'Terrestre';
+    document.getElementById('id_trnsprt').value = '';
+    document.getElementById('transporte_trnsprt').value = '';
+    document.getElementById('contacto_trnsprt').value = '';
+    document.getElementById('fono_trnsprt').value = '';
+    document.getElementById('email_trnsprt').value = '';
+    document.getElementById('direccion_trnsprt').value = '';
     document.getElementById('submodal-transporte').style.display = 'flex';
 }
 
@@ -207,15 +179,17 @@ function cerrarSubmodalTransporte() {
 
 function guardarTransporte() {
     const formData = new FormData();
-    const id_transporte = document.getElementById('id_transporte').value;
+    const id_trnsprt = document.getElementById('id_trnsprt').value;
 
-    formData.append('action', id_transporte ? 'actualizar_transporte' : 'crear_transporte');
-    formData.append('id_vehiculo_transporte', document.getElementById('id_vehiculo_transporte').value);
-    formData.append('id_chofer_transporte', document.getElementById('id_chofer_transporte').value);
-    formData.append('tipo_transporte', document.getElementById('tipo_transporte').value);
+    formData.append('action', id_trnsprt ? 'actualizar_transporte_catalogo' : 'crear_transporte_catalogo');
+    formData.append('transporte_trnsprt', document.getElementById('transporte_trnsprt').value.trim());
+    formData.append('contacto_trnsprt', document.getElementById('contacto_trnsprt').value.trim() || '');
+    formData.append('fono_trnsprt', document.getElementById('fono_trnsprt').value.trim() || '');
+    formData.append('email_trnsprt', document.getElementById('email_trnsprt').value.trim() || '');
+    formData.append('direccion_trnsprt', document.getElementById('direccion_trnsprt').value.trim() || '');
 
-    if (id_transporte) {
-        formData.append('id_transporte', id_transporte);
+    if (id_trnsprt) {
+        formData.append('id_trnsprt', id_trnsprt);
     }
 
     fetch('/pages/transporte_logic.php', { method: 'POST', body: formData })
@@ -235,14 +209,33 @@ function guardarTransporte() {
 }
 
 function editarTransporte(id) {
-    alert('Edición no implementada en esta versión (reimplementar con API si es necesario).');
+    fetch(`/pages/transporte_logic.php?action=obtener_transporte_catalogo&id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data || !data.id_trnsprt) {
+                alert('❌ No se pudo cargar el transporte.');
+                return;
+            }
+            document.getElementById('submodal-titulo-transporte').innerHTML = '<i class="fas fa-truck"></i> Editar Transporte';
+            document.getElementById('id_trnsprt').value = data.id_trnsprt;
+            document.getElementById('transporte_trnsprt').value = data.transporte_trnsprt || '';
+            document.getElementById('contacto_trnsprt').value = data.contacto_trnsprt || '';
+            document.getElementById('fono_trnsprt').value = data.fono_trnsprt || '';
+            document.getElementById('email_trnsprt').value = data.email_trnsprt || '';
+            document.getElementById('direccion_trnsprt').value = data.direccion_trnsprt || '';
+            document.getElementById('submodal-transporte').style.display = 'flex';
+        })
+        .catch(err => {
+            console.error('Error al cargar transporte:', err);
+            alert('❌ Error al cargar el transporte.');
+        });
 }
 
 function eliminarTransporte(id) {
-    if (confirm('¿Eliminar este registro de transporte?')) {
+    if (confirm('¿Eliminar este transporte del catálogo?')) {
         const formData = new FormData();
-        formData.append('action', 'eliminar_transporte');
-        formData.append('id_transporte', id);
+        formData.append('action', 'eliminar_transporte_catalogo');
+        formData.append('id_trnsprt', id);
 
         fetch('/pages/transporte_logic.php', { method: 'POST', body: formData })
             .then(r => r.json())

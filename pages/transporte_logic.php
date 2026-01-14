@@ -8,70 +8,145 @@ if (php_sapi_name() === 'cli') {
 }
 
 header('Content-Type: application/json');
-$pdo = getDBConnection();
-$action = $_POST['action'] ?? '';
 
 try {
-    if ($action === 'crear_transporte') {
-        $required = ['id_vehiculo_transporte', 'id_chofer_transporte', 'tipo_transporte'];
-        foreach ($required as $field) {
-            if (empty($_POST[$field])) {
-                echo json_encode(['success' => false, 'message' => 'Campo requerido: ' . $field]);
-                exit;
-            }
+    $pdo = getDBConnection();
+    
+    // Leer acción desde POST o GET
+    $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+    /* ===============================
+       CREAR TRANSPORTE (catálogo global)
+    =============================== */
+    if ($action === 'crear_transporte_catalogo') {
+        if (empty($_POST['transporte_trnsprt'])) {
+            echo json_encode(['success' => false, 'message' => 'Nombre de transporte requerido.']);
+            exit;
         }
 
-        $stmt = $pdo->prepare("
-            INSERT INTO transporte (id_vehiculo_transporte, id_chofer_transporte, tipo_transporte)
-            VALUES (?, ?, ?)
-        ");
-        $stmt->execute([
-            $_POST['id_vehiculo_transporte'],
-            $_POST['id_chofer_transporte'],
-            $_POST['tipo_transporte']
-        ]);
-        echo json_encode(['success' => true]);
-        exit;
-    }
-
-    if ($action === 'actualizar_transporte') {
-        if (!isset($_POST['id_transporte'])) {
-            echo json_encode(['success' => false, 'message' => 'ID requerido.']);
+        // Verificar unicidad
+        $stmt = $pdo->prepare("SELECT id_trnsprt FROM transporte WHERE transporte_trnsprt = ?");
+        $stmt->execute([$_POST['transporte_trnsprt']]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Ya existe un transporte con ese nombre.']);
             exit;
         }
 
         $stmt = $pdo->prepare("
-            UPDATE transporte SET
-                id_vehiculo_transporte = ?,
-                id_chofer_transporte = ?,
-                tipo_transporte = ?
-            WHERE id_transporte = ?
+            INSERT INTO transporte (
+                transporte_trnsprt, 
+                contacto_trnsprt, 
+                fono_trnsprt, 
+                direccion_trnsprt, 
+                email_trnsprt
+            ) VALUES (?, ?, ?, ?, ?)
         ");
         $stmt->execute([
-            $_POST['id_vehiculo_transporte'] ?? null,
-            $_POST['id_chofer_transporte'] ?? null,
-            $_POST['tipo_transporte'] ?? '',
-            $_POST['id_transporte']
+            $_POST['transporte_trnsprt'],
+            $_POST['contacto_trnsprt'] ?? null,
+            $_POST['fono_trnsprt'] ?? null,
+            $_POST['direccion_trnsprt'] ?? null,
+            $_POST['email_trnsprt'] ?? null
         ]);
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'message' => 'Transporte creado correctamente.']);
         exit;
     }
 
-    if ($action === 'eliminar_transporte') {
-        if (!isset($_POST['id_transporte'])) {
+    /* ===============================
+       OBTENER TRANSPORTE (para edición)
+    =============================== */
+    if ($action === 'obtener_transporte_catalogo') {
+        if (empty($_GET['id']) || !is_numeric($_GET['id'])) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+
+        $id = (int)$_GET['id'];
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                id_trnsprt, 
+                transporte_trnsprt, 
+                contacto_trnsprt, 
+                fono_trnsprt, 
+                direccion_trnsprt, 
+                email_trnsprt 
+            FROM transporte 
+            WHERE id_trnsprt = ?
+        ");
+        $stmt->execute([$id]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($data && isset($data['id_trnsprt'])) {
+            echo json_encode($data);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Transporte no encontrado.']);
+        }
+        exit;
+    }
+
+    /* ===============================
+       ACTUALIZAR TRANSPORTE
+    =============================== */
+    if ($action === 'actualizar_transporte_catalogo') {
+        if (empty($_POST['id_trnsprt']) || empty($_POST['transporte_trnsprt'])) {
+            echo json_encode(['success' => false, 'message' => 'Datos incompletos.']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE transporte SET 
+                transporte_trnsprt = ?,
+                contacto_trnsprt = ?,
+                fono_trnsprt = ?,
+                direccion_trnsprt = ?,
+                email_trnsprt = ?
+            WHERE id_trnsprt = ?
+        ");
+        $result = $stmt->execute([
+            $_POST['transporte_trnsprt'],
+            $_POST['contacto_trnsprt'] ?? null,
+            $_POST['fono_trnsprt'] ?? null,
+            $_POST['direccion_trnsprt'] ?? null,
+            $_POST['email_trnsprt'] ?? null,
+            $_POST['id_trnsprt']
+        ]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Transporte actualizado correctamente.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Error al actualizar el transporte.']);
+        }
+        exit;
+    }
+
+    /* ===============================
+       ELIMINAR TRANSPORTE
+    =============================== */
+    if ($action === 'eliminar_transporte_catalogo') {
+        if (empty($_POST['id_trnsprt'])) {
             echo json_encode(['success' => false, 'message' => 'ID requerido.']);
             exit;
         }
 
-        $pdo->prepare("DELETE FROM transporte WHERE id_transporte = ?")->execute([$_POST['id_transporte']]);
-        echo json_encode(['success' => true]);
+        $stmt = $pdo->prepare("DELETE FROM transporte WHERE id_trnsprt = ?");
+        $result = $stmt->execute([$_POST['id_trnsprt']]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Transporte eliminado correctamente.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Error al eliminar el transporte.']);
+        }
         exit;
     }
 
+    /* ===============================
+       ACCIÓN NO VÁLIDA
+    =============================== */
     echo json_encode(['success' => false, 'message' => 'Acción no válida.']);
 
 } catch (Exception $e) {
     error_log("Error en transporte_logic: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Error interno.']);
+    echo json_encode(['success' => false, 'message' => 'Error interno del servidor.']);
 }
 ?>
