@@ -136,8 +136,6 @@ $html = '
                 <tr>
                     <td class="label">FECHA:</td><td>' . htmlspecialchars($remesa['fecha_rms']) . '</td>
                     <td class="label">MES:</td><td>' . htmlspecialchars($remesa['mes_rms']) . '</td>
-                    <td class="label">ESTADO:</td><td>' . htmlspecialchars($remesa['estado_rms']) . '</td>
-                    <td class="label">T/C:</td><td>' . fmtDecimal($remesa['tipo_cambio_rms']) . '</td>
                 </tr>
             </table>
             <table style="margin-top: 6px;">
