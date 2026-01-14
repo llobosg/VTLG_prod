@@ -140,10 +140,8 @@ $html = '
             </table>
             <table style="margin-top: 6px;">
                 <tr>
-                    <td class="label" style="text-align: center;">SRES.:</td>
-                    <td style="text-align: center;">' . htmlspecialchars($remesa['cliente_nombre'] ?? '') . '</td>
-                    <td class="label" style="text-align: center;">ATN.:</td>
-                    <td style="text-align: center;">' . htmlspecialchars($remesa['contacto_rms']) . '</td>
+                    <td class="label">SRES.:</td><td>' . htmlspecialchars($remesa['cliente_nombre'] ?? '') . '</td>
+                    <td class="label">ATN.:</td><td>' . htmlspecialchars($remesa['contacto_rms']) . '</td>
                 </tr>
             </table>
         </div>
