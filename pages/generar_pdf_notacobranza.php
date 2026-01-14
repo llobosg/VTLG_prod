@@ -140,32 +140,26 @@ $html = '
 <div class="container">
     <!-- SECCIÓN SUPERIOR NUEVA -->
     <div class="header">
-        <?php
-        // Cargar logo como base64
-        $logoPath = __DIR__ . '/../includes/LogoLG.jpeg';
-        $logoBase64 = '';
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/jpeg;base64,' . base64_encode($logoData);
-        }
-        ?>
         <table class="header-table">
             <tr>
-                <td class="col1" style="vertical-align: top; padding-right: 10px;">
-                    <?php if ($logoBase64): ?>
-                        <img src="<?= $logoBase64 ?>" alt="Logo" style="height: 40px; width: auto;">
-                    <?php endif; ?>
-                </td>
-                <td class="col1" style="vertical-align: top;">
-                    <div><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></div>
-                    <div>R.U.T. 13.979.734-6</div>
-                    <div>Casa matriz: Blanco 1623 of 1203 Valparaíso - Valparaíso</div>
-                </td>
+                <td class="col1"></td>
                 <td class="col2"></td>
-                <td class="col3" style="text-align: center; vertical-align: top;">
-                    <div style="font-weight: bold;">NOTA DE COBRANZA</div>
-                    <div>Nº: <?= htmlspecialchars($cabecera['nro_nc'] ?? '') ?></div>
-                </td>
+                <td class="col3"></td>
+            </tr>
+            <tr>
+                <td class="col1"></td>
+                <td class="col2"></td>
+                <td class="col3"></td>
+            </tr>
+            <tr>
+                <td class="col1"><strong>Agencia de Aduana Luis Galleguillos Valderrama</strong></td>
+                <td class="col2"></td>
+                <td class="col3"></td>
+            </tr>
+            <tr>
+                <td class="col1">Casa matriz: Blanco 1623 of 1203 Valparaíso - Valparaíso</td>
+                <td class="col2"></td>
+                <td class="col3"></td>
             </tr>
         </table>
         <!-- Cuadro derecho CORREGIDO -->
