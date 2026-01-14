@@ -92,12 +92,6 @@ $html = '
     <style>
         body { font-family: Arial, sans-serif; font-size: 10px; margin: 0; padding: 0; }
         .container { padding: 20px; }
-        .section-box {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 16px;
-            margin-top: 16px; /* ← Baja todo el cuadro 1 línea */
-        }
         table { width: 100%; border-collapse: collapse; margin: 6px 0; }
         th, td { padding: 4px; vertical-align: top; }
         .section-title { font-weight: bold; margin: 12px 0 6px 0; font-size: 12px; }
@@ -112,6 +106,12 @@ $html = '
         }
         .totals-row td { border-top: 1px solid #000; }
         .separator { height: 1px; background: #000; margin: 8px 0; }
+        .section-box {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-bottom: 16px;
+            margin-top: 18px; /* ← Baja todo el cuadro 1 línea */
+        }
         .logo-box {
             position: absolute;
             left: 20px;
