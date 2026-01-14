@@ -118,6 +118,19 @@ $html = '
             color: white;
             margin: 0 0 8px 0;
         }
+        .logo-box {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            width: 120px;
+        }
+        .logo-box img {
+            width: 100%;
+            height: auto;
+        }
+        .header-spacer {
+            height: 28px; /* ≈ 2 líneas */
+        }
         .totals { font-weight: bold; }
         h2 { margin: 0 0 8px 0; font-size: 14px; text-align: center; }
     </style>
@@ -127,6 +140,10 @@ $html = '
 
     <!-- === SECCIÓN SUPERIOR (CABECERA + 4x4) === -->
     <div class="section-box">
+        <!-- LOGO SUPERIOR IZQUIERDO -->
+        <div class="logo-box">
+            <img src="/includes/LogoLG.jpeg" alt="Logo LG">
+        </div>
         <div style="margin-bottom: 10px;">
             <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; text-align: left;">Agencia de Aduanas Luis Galleguillos Valderrama</div>
             <h2 style="margin: 8px 0;">SOLICITUD DE REMESA</h2>
