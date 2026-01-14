@@ -1,58 +1,3 @@
-<?php
-require_once 'config.php';
-
-// Iniciar sesión
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Si ya hay sesión válida, redirigir al dashboard
-if (isset($_SESSION['user_id']) && isset($_SESSION['rol'])) {
-    header('Location: /dashboard.php');
-    exit;
-}
-
-$error = '';
-
-// Procesar login
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usuario = trim($_POST['usuario'] ?? '');
-    $password = $_POST['password'] ?? '';
-    
-    if ($usuario && $password) {
-        try {
-            $pdo = getDBConnection();
-            $stmt = $pdo->prepare("SELECT id_usr, nombre_usr, rol_usr, password_usr FROM usuarios WHERE nombre_usr = ?");
-            $stmt->execute([$usuario]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($user && password_verify($password, $user['password_usr'])) {
-                // Establecer sesión
-                $_SESSION['user_id'] = $user['id_usr'];
-                $_SESSION['rol'] = $user['rol_usr'];
-                $_SESSION['username'] = $user['nombre_usr'];
-                
-                // Regenerar ID de sesión
-                session_regenerate_id(true);
-                
-                // Redirigir al dashboard
-                header('Location: /dashboard.php');
-                exit;
-            } else {
-                $error = 'Usuario o contraseña incorrectos.';
-            }
-        } catch (Exception $e) {
-            error_log("Error en login: " . $e->getMessage());
-            $error = 'Error interno. Intente más tarde.';
-        }
-    } else {
-        $error = 'Complete todos los campos.';
-    }
-} else {
-    // Mostrar error desde URL
-    $error = $_GET['error'] ?? '';
-}
-?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -130,11 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-container">
     <img src="/includes/logo.png" alt="Logo VTLG" class="login-logo" onerror="this.style.display='none'">
     <h2><i class="fas fa-lock"></i> Acceso al Sistema</h2>
-    <?php if ($error): ?>
-        <div class="error"><?= htmlspecialchars($error) ?></div>
+    <?php if (isset($_GET['error'])): ?>
+        <div class="error">Usuario o contraseña incorrectos</div>
     <?php endif; ?>
-    <form method="POST">
-        <input type="text" name="usuario" placeholder="Nombre de usuario" required value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>" />
+    <form method="POST" action="/auth.php">
+        <input type="text" name="usuario" placeholder="Nombre de usuario" required />
         <input type="password" name="password" placeholder="Contraseña" required />
         <button type="submit">Ingresar</button>
     </form>
