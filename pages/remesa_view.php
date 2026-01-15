@@ -247,14 +247,18 @@ $tramites = [
 
                     <!-- Campo Mercancía (texto libre con autocompletado) -->
                     <div>Mercancía:</div>
-                    <div><input type="text" 
+                    <div style="position: relative;">
+                        <input type="text" 
                             id="mercancia_rms" 
                             placeholder="Escriba o seleccione una mercancía..."
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;"></div>
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
                         <div id="resultados-mercancia" 
                             style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
                                     border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
-                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
+                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;
+                                    top: 100%; left: 0; margin-top: -1px;">
+                        </div>
+                    </div>
                     <div>MOTONAVE</div>
                     <div><input type="text" id="motonave_rms" class="erp-input" style="height: 2.0rem;"></div>
 
