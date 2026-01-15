@@ -246,7 +246,7 @@ $tramites = [
                     </div>
 
                     <div>MERCANCÍA:</div>
-                    <div><input type="text" id="mercancia_rms" placeholder="Escriba o seleccione una mercancía..."></div>
+                    <div><input type="text" id="mercancia_rms"  placeholder="Escriba o seleccione una mercancía..." class="erp-input" style="height: 2.0rem;"></div>
                     <div id="resultados-mercancia"></div>
                     <div>MOTONAVE</div>
                     <div><input type="text" id="motonave_rms" class="erp-input" style="height: 2.0rem;"></div>
