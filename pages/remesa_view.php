@@ -246,17 +246,28 @@ $tramites = [
                     </div>
 
                     <!-- Campo Mercancía (texto libre con autocompletado) -->
-                    <div>Mercancía:</div>
-                    <div style="position: relative;">
-                        <input type="text" 
-                            id="mercancia_rms" 
-                            placeholder="Escriba o seleccione una mercancía..."
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
-                        <div id="resultados-mercancia" 
-                            style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
-                                    border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
-                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;
-                                    top: 100%; left: 0; margin-top: -1px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 1rem; gap: 0.5rem;">
+                        <label for="mercancia_rms" style="width: 120px; font-weight: bold;">Mercancía:</label>
+                        <div style="position: relative; flex: 1;">
+                            <?php
+                            $valor_mercancia = '';
+                            if (!empty($remesa['mercancia_nombre'])) {
+                                $valor_mercancia = $remesa['mercancia_nombre'];
+                            } elseif (!empty($remesa['mercancia_rms'])) {
+                                $mercStmt = $pdo->prepare("SELECT mercancia_mrcc FROM mercancias WHERE id_mrcc = ?");
+                                $mercStmt->execute([$remesa['mercancia_rms']]);
+                                $valor_mercancia = $mercStmt->fetchColumn() ?: '';
+                            }
+                            ?>
+                            <input type="text" 
+                                id="mercancia_rms" 
+                                value="<?= htmlspecialchars($valor_mercancia) ?>"
+                                placeholder="Escriba o seleccione una mercancía..."
+                                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
+                            <div id="resultados-mercancia" 
+                                style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
+                                        border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
+                                        box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
                         </div>
                     </div>
                     <div>MOTONAVE</div>
