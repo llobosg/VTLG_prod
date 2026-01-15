@@ -28,18 +28,34 @@ if (isset($_GET['getContactoById'])) {
     exit;
 }
 
-// === Cargar remesa para editar ===
-if (isset($_GET['edit'])) {
-    $stmt = $pdo->prepare("SELECT * FROM remesa WHERE id_rms = ?");
-    $stmt->execute([(int)$_GET['edit']]);
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($data) {
+// En la función que carga la remesa para edición
+function cargarRemesaParaEdicion(id) {
+    fetch(`/pages/remesa_logic.php?edit=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data) {
+                alert('❌ No se pudo cargar la remesa.');
+                return;
+            }
         // Convertir campos numéricos a float para JSON
         foreach ($data as $key => $value) {
             if (is_numeric($value) && $key !== 'cliente_rms' && $key !== 'id_rms') {
                 $data[$key] = (float)$value;
             }
         }
+        // Campo mercancía - usar mercancia_display
+            document.getElementById('mercancia_rms').value = data.mercancia_display || '';
+            
+            // Guardar el valor original para detectar cambios
+            document.getElementById('mercancia_rms').dataset.valorOriginal = data.mercancia_display || '';
+            
+            // Limpiar selección previa
+            window.mercanciaSeleccionadaActual = null;
+        })
+        .catch(err => {
+            console.error('Error al cargar remesa:', err);
+            alert('❌ Error al cargar la remesa.');
+        });
     }
     echo json_encode($data ?: null);
     exit;
