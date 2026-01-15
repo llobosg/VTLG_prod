@@ -28,58 +28,24 @@ if (isset($_GET['getContactoById'])) {
     exit;
 }
 
-// === Cargar remesa para editar ===
-if (isset($_GET['edit'])) {
-    // Establecer cabecera JSON inmediatamente
-    header('Content-Type: application/json');
+// Cargar remesa si hay ID
+$id_rms = $_GET['id'] ?? null;
+$remesa = null;
+if ($id_rms && is_numeric($id_rms)) {
+    $stmt = $pdo->prepare("
+        SELECT 
+            r.*,
+            COALESCE(r.mercancia_nombre, m.mercancia_mrcc) AS mercancia_display
+        FROM remesa r
+        LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+        WHERE r.id_rms = ?
+    ");
+    $stmt->execute([(int)$id_rms]);
+    $remesa = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    try {
-        // Validar ID
-        $id = (int)$_GET['edit'];
-        if ($id <= 0) {
-            echo json_encode(null);
-            exit;
-        }
-        
-        // Consultar remesa
-        $stmt = $pdo->prepare("SELECT * FROM remesa WHERE id_rms = ?");
-        $stmt->execute([$id]);
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$data) {
-            echo json_encode(null);
-            exit;
-        }
-        
-        // Determinar qué nombre mostrar
-        if (!empty($data['mercancia_nombre'])) {
-            // Texto libre ingresado por usuario
-            $data['mercancia_display'] = $data['mercancia_nombre'];
-        } elseif (!empty($data['mercancia_rms'])) {
-            // Mercancía del catálogo - buscar nombre
-            $mercStmt = $pdo->prepare("SELECT mercancia_mrcc FROM mercancias WHERE id_mrcc = ?");
-            $mercStmt->execute([$data['mercancia_rms']]);
-            $mercNombre = $mercStmt->fetchColumn();
-            $data['mercancia_display'] = $mercNombre ?: '';
-        } else {
-            $data['mercancia_display'] = '';
-        }
-        
-        // Convertir campos numéricos a float (excepto IDs)
-        $excludeKeys = ['id_rms', 'cliente_rms', 'mercancia_rms', 'cia_transp_rms'];
-        foreach ($data as $key => $value) {
-            if (is_numeric($value) && !in_array($key, $excludeKeys)) {
-                $data[$key] = (float)$value;
-            }
-        }
-        
-        echo json_encode($data);
-        exit;
-        
-    } catch (Exception $e) {
-        // En caso de cualquier error, devolver null en JSON
-        error_log("Error al cargar remesa edit: " . $e->getMessage());
-        echo json_encode(null);
+    // Si no hay resultado, redirigir
+    if (!$remesa) {
+        header('Location: /pages/remesa_view.php');
         exit;
     }
 }

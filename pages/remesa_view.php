@@ -245,23 +245,13 @@ $tramites = [
                         </select>
                     </div>
 
-                    <!-- Campo Mercancía (texto libre con autocompletado) -->
+                    <!-- Campo Mercancía -->
                     <div style="display: flex; align-items: center; margin-bottom: 1rem; gap: 0.5rem;">
                         <label for="mercancia_rms" style="width: 120px; font-weight: bold;">Mercancía:</label>
                         <div style="position: relative; flex: 1;">
-                            <?php
-                            $valor_mercancia = '';
-                            if (!empty($remesa['mercancia_nombre'])) {
-                                $valor_mercancia = $remesa['mercancia_nombre'];
-                            } elseif (!empty($remesa['mercancia_rms'])) {
-                                $mercStmt = $pdo->prepare("SELECT mercancia_mrcc FROM mercancias WHERE id_mrcc = ?");
-                                $mercStmt->execute([$remesa['mercancia_rms']]);
-                                $valor_mercancia = $mercStmt->fetchColumn() ?: '';
-                            }
-                            ?>
                             <input type="text" 
                                 id="mercancia_rms" 
-                                value="<?= htmlspecialchars($valor_mercancia) ?>"
+                                value="<?= htmlspecialchars($remesa['mercancia_display'] ?? '') ?>"
                                 placeholder="Escriba o seleccione una mercancía..."
                                 style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
                             <div id="resultados-mercancia" 
