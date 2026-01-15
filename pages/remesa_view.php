@@ -255,7 +255,6 @@ $tramites = [
                             style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
                                     border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
                                     box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
-                    </div>
                     <div>MOTONAVE</div>
                     <div><input type="text" id="motonave_rms" class="erp-input" style="height: 2.0rem;"></div>
 
