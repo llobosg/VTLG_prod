@@ -246,18 +246,15 @@ $tramites = [
                     </div>
 
                     <!-- Campo Mercancía (texto libre con autocompletado) -->
-                    <div style="display: flex; align-items: center; margin-bottom: 1rem; gap: 0.5rem;">
-                        <label for="mercancia_rms" style="width: 120px; font-weight: bold;">Mercancía:</label>
-                        <div style="position: relative; flex: 1;">
-                            <input type="text" 
-                                id="mercancia_rms" 
-                                placeholder="Escriba o seleccione una mercancía..."
-                                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
-                            <div id="resultados-mercancia" 
-                                style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
-                                        border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
-                                        box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
-                        </div>
+                    <div>Mercancía:</div>
+                    <div><input type="text" 
+                            id="mercancia_rms" 
+                            placeholder="Escriba o seleccione una mercancía..."
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;"></div>
+                        <div id="resultados-mercancia" 
+                            style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
+                                    border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
+                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
                     </div>
                     <div>MOTONAVE</div>
                     <div><input type="text" id="motonave_rms" class="erp-input" style="height: 2.0rem;"></div>
