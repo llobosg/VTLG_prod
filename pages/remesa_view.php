@@ -10,6 +10,34 @@ if ($rol !== 'admin' && $rol !== 'comercial' && $rol !== 'pricing') {
 
 $pdo = getDBConnection();
 
+// Cargar remesa si hay ID
+$id_rms = $_GET['id'] ?? null;
+$remesa = null;
+if ($id_rms && is_numeric($id_rms)) {
+    try {
+        $pdo = getDBConnection();
+        $stmt = $pdo->prepare("
+            SELECT 
+                r.*,
+                CASE 
+                    WHEN r.mercancia_nombre IS NOT NULL AND r.mercancia_nombre != '' 
+                    THEN r.mercancia_nombre
+                    WHEN m.mercancia_mrcc IS NOT NULL 
+                    THEN m.mercancia_mrcc
+                    ELSE ''
+                END AS mercancia_display
+            FROM remesa r
+            LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+            WHERE r.id_rms = ?
+        ");
+        $stmt->execute([(int)$id_rms]);
+        $remesa = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        error_log("Error al cargar remesa: " . $e->getMessage());
+        $remesa = null;
+    }
+}
+
 // === Obtener valores del ENUM para aduana_rms ===
 $enumQuery = "SHOW COLUMNS FROM remesa LIKE 'aduana_rms'";
 $enumResult = $pdo->query($enumQuery)->fetch();
@@ -244,10 +272,9 @@ $tramites = [
                             <?php endwhile; ?>
                         </select>
                     </div>
-
                     <!-- Campo Mercancía -->
-                    <div style="display: flex; align-items: center; margin-bottom: 1rem; gap: 0.5rem;">
-                        <label for="mercancia_rms" style="width: 120px; font-weight: bold;">Mercancía:</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                        <label for="mercancia_rms" style="width: 120px;">MERCANCÍA:</label>
                         <div style="position: relative; flex: 1;">
                             <input type="text" 
                                 id="mercancia_rms" 
