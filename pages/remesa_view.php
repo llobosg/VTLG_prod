@@ -555,13 +555,15 @@ function guardarRemesa() {
     // Obtener datos de mercancía
     const mercanciaInputValue = (document.getElementById('mercancia_rms')?.value || '').trim();
     const mercanciaSeleccionada = window.getMercanciaSeleccionada?.() || null;
-    
+
     let mercanciaNombre = '';
     if (mercanciaSeleccionada) {
         mercanciaNombre = mercanciaSeleccionada.mercancia_mrcc;
     } else if (mercanciaInputValue) {
         mercanciaNombre = mercanciaInputValue;
     }
+
+    formData.append('mercancia_rms', mercanciaNombre);
 
     // Preparar datos para envío
     formData.append('action', id_rms ? 'actualizar_remesa' : 'crear_remesa');
@@ -883,7 +885,6 @@ function cerrarModal() {
     window.seleccionarMercancia = function(id, nombre) {
         input.value = nombre;
         resultadosDiv.style.display = 'none';
-        // Guardar selección globalmente
         window.mercanciaSeleccionadaActual = { id_mrcc: id, mercancia_mrcc: nombre };
     };
 
@@ -892,8 +893,6 @@ function cerrarModal() {
         const term = this.value.trim();
         resultadosDiv.style.display = 'none';
         resultadosDiv.innerHTML = '';
-        
-        // Limpiar selección si se edita manualmente
         window.mercanciaSeleccionadaActual = null;
 
         if (term.length < 2) return;

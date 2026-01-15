@@ -32,23 +32,30 @@ if (isset($_GET['getContactoById'])) {
 $id_rms = $_GET['id'] ?? null;
 $remesa = null;
 if ($id_rms && is_numeric($id_rms)) {
-    $stmt = $pdo->prepare("
-        SELECT 
-            r.*,
-            COALESCE(r.mercancia_nombre, m.mercancia_mrcc) AS mercancia_display
-        FROM remesa r
-        LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-        WHERE r.id_rms = ?
-    ");
-    $stmt->execute([(int)$id_rms]);
-    $remesa = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // Si no hay resultado, redirigir
-    if (!$remesa) {
+    try {
+        $pdo = getDBConnection();
+        $stmt = $pdo->prepare("
+            SELECT 
+                r.*,
+                COALESCE(r.mercancia_nombre, m.mercancia_mrcc) AS mercancia_display
+            FROM remesa r
+            LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+            WHERE r.id_rms = ?
+        ");
+        $stmt->execute([(int)$id_rms]);
+        $remesa = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$remesa) {
+            header('Location: /pages/remesa_view.php');
+            exit;
+        }
+    } catch (Exception $e) {
+        error_log("Error al cargar remesa: " . $e->getMessage());
         header('Location: /pages/remesa_view.php');
         exit;
     }
 }
+
 
 // === Eliminar remesa ===
 if (isset($_GET['delete'])) {
