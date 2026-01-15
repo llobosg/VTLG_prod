@@ -245,16 +245,16 @@ $tramites = [
                         </select>
                     </div>
 
-                    <div>MERCANCÍA</div>
-                    <div>
-                        <select id="mercancia_rms" class="erp-input" style="height: 2.0rem;">
-                            <option value="">Seleccionar</option>
-                            <?php
-                            $stmt2 = $pdo->query("SELECT id_mrcc, mercancia_mrcc FROM mercancias ORDER BY mercancia_mrcc");
-                            while ($row = $stmt2->fetch()): ?>
-                                <option value="<?= $row['id_mrcc'] ?>"><?= htmlspecialchars($row['mercancia_mrcc']) ?></option>
-                            <?php endwhile; ?>
-                        </select>
+                    <div style="position: relative;">
+                        <label for="mercancia_rms">Mercancía:</label>
+                        <input type="text" 
+                            id="mercancia_rms" 
+                            placeholder="Escriba o seleccione una mercancía..."
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <div id="resultados-mercancia" 
+                            style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
+                                    border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
+                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
                     </div>
                     <div>MOTONAVE</div>
                     <div><input type="text" id="motonave_rms" class="erp-input" style="height: 2.0rem;"></div>
@@ -549,8 +549,8 @@ function guardarRemesa() {
     }
 
     // Obtener datos de mercancía
-    const mercanciaSeleccionada = window.getMercanciaSeleccionada?.() || null;
     const mercanciaInputValue = (document.getElementById('mercancia_rms')?.value || '').trim();
+    const mercanciaSeleccionada = window.getMercanciaSeleccionada?.() || null;
     
     let mercanciaNombre = '';
     if (mercanciaSeleccionada) {
@@ -858,6 +858,74 @@ function cerrarModal() {
 
     window.getMercanciaInputValue = function() {
         return input.value;
+    };
+})();
+// === BÚSQUEDA INTELIGENTE MERCANCÍAS ===
+(function() {
+    const input = document.getElementById('mercancia_rms');
+    if (!input) return;
+
+    const resultadosDiv = document.getElementById('resultados-mercancia');
+    let mercanciaSeleccionada = null;
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !resultadosDiv.contains(e.target)) {
+            resultadosDiv.style.display = 'none';
+        }
+    });
+
+    // Manejar selección
+    function seleccionarMercancia(id, nombre) {
+        mercanciaSeleccionada = { id_mrcc: id, mercancia_mrcc: nombre };
+        input.value = nombre;
+        resultadosDiv.style.display = 'none';
+    }
+
+    // Evento de escritura
+    input.addEventListener('input', function() {
+        const term = this.value.trim();
+        resultadosDiv.style.display = 'none';
+        resultadosDiv.innerHTML = '';
+
+        if (term.length < 2) {
+            mercanciaSeleccionada = null;
+            return;
+        }
+
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            fetch(`/api/get_mercancias_busqueda.php?term=${encodeURIComponent(term)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!Array.isArray(data) || data.length === 0) {
+                        resultadosDiv.style.display = 'none';
+                        return;
+                    }
+
+                    resultadosDiv.innerHTML = '';
+                    data.forEach(item => {
+                        const el = document.createElement('div');
+                        el.style.cssText = `
+                            padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;
+                            font-size: 0.95rem;
+                        `;
+                        el.textContent = item.mercancia_mrcc;
+                        el.onclick = () => seleccionarMercancia(item.id_mrcc, item.mercancia_mrcc);
+                        resultadosDiv.appendChild(el);
+                    });
+                    resultadosDiv.style.display = 'block';
+                })
+                .catch(err => {
+                    console.error('Error en búsqueda de mercancías:', err);
+                    resultadosDiv.style.display = 'none';
+                });
+        }, 300);
+    });
+
+    // Exponer función para guardarRemesa()
+    window.getMercanciaSeleccionada = function() {
+        return mercanciaSeleccionada;
     };
 })();
 </script>
