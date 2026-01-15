@@ -28,37 +28,60 @@ if (isset($_GET['getContactoById'])) {
     exit;
 }
 
-// En la función que carga la remesa para edición
-function cargarRemesaParaEdicion(id) {
-    fetch(`/pages/remesa_logic.php?edit=${id}`)
-        .then(r => r.json())
-        .then(data => {
-            if (!data) {
-                alert('❌ No se pudo cargar la remesa.');
-                return;
-            }
-        // Convertir campos numéricos a float para JSON
+// === Cargar remesa para editar ===
+if (isset($_GET['edit'])) {
+    // Establecer cabecera JSON inmediatamente
+    header('Content-Type: application/json');
+    
+    try {
+        // Validar ID
+        $id = (int)$_GET['edit'];
+        if ($id <= 0) {
+            echo json_encode(null);
+            exit;
+        }
+        
+        // Consultar remesa
+        $stmt = $pdo->prepare("SELECT * FROM remesa WHERE id_rms = ?");
+        $stmt->execute([$id]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$data) {
+            echo json_encode(null);
+            exit;
+        }
+        
+        // Determinar qué nombre mostrar
+        if (!empty($data['mercancia_nombre'])) {
+            // Texto libre ingresado por usuario
+            $data['mercancia_display'] = $data['mercancia_nombre'];
+        } elseif (!empty($data['mercancia_rms'])) {
+            // Mercancía del catálogo - buscar nombre
+            $mercStmt = $pdo->prepare("SELECT mercancia_mrcc FROM mercancias WHERE id_mrcc = ?");
+            $mercStmt->execute([$data['mercancia_rms']]);
+            $mercNombre = $mercStmt->fetchColumn();
+            $data['mercancia_display'] = $mercNombre ?: '';
+        } else {
+            $data['mercancia_display'] = '';
+        }
+        
+        // Convertir campos numéricos a float (excepto IDs)
+        $excludeKeys = ['id_rms', 'cliente_rms', 'mercancia_rms', 'cia_transp_rms'];
         foreach ($data as $key => $value) {
-            if (is_numeric($value) && $key !== 'cliente_rms' && $key !== 'id_rms') {
+            if (is_numeric($value) && !in_array($key, $excludeKeys)) {
                 $data[$key] = (float)$value;
             }
         }
-        // Campo mercancía - usar mercancia_display
-            document.getElementById('mercancia_rms').value = data.mercancia_display || '';
-            
-            // Guardar el valor original para detectar cambios
-            document.getElementById('mercancia_rms').dataset.valorOriginal = data.mercancia_display || '';
-            
-            // Limpiar selección previa
-            window.mercanciaSeleccionadaActual = null;
-        })
-        .catch(err => {
-            console.error('Error al cargar remesa:', err);
-            alert('❌ Error al cargar la remesa.');
-        });
+        
+        echo json_encode($data);
+        exit;
+        
+    } catch (Exception $e) {
+        // En caso de cualquier error, devolver null en JSON
+        error_log("Error al cargar remesa edit: " . $e->getMessage());
+        echo json_encode(null);
+        exit;
     }
-    echo json_encode($data ?: null);
-    exit;
 }
 
 // === Eliminar remesa ===
