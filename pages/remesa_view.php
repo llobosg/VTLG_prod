@@ -245,17 +245,9 @@ $tramites = [
                         </select>
                     </div>
 
-                    <div style="position: relative;">
-                        <label for="mercancia_rms">Mercancía:</label>
-                        <input type="text" 
-                            id="mercancia_rms" 
-                            placeholder="Escriba o seleccione una mercancía..."
-                            style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-                        <div id="resultados-mercancia" 
-                            style="position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; 
-                                    border-top: none; max-height: 200px; overflow-y: auto; width: 100%; 
-                                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none;"></div>
-                    </div>
+                    <div>MERCANCÍA:</div>
+                    <div><input type="text" id="mercancia_rms" placeholder="Escriba o seleccione una mercancía..."></div>
+                    <div id="resultados-mercancia"></div>
                     <div>MOTONAVE</div>
                     <div><input type="text" id="motonave_rms" class="erp-input" style="height: 2.0rem;"></div>
 
@@ -860,14 +852,14 @@ function cerrarModal() {
         return input.value;
     };
 })();
+
 // === BÚSQUEDA INTELIGENTE MERCANCÍAS ===
 (function() {
     const input = document.getElementById('mercancia_rms');
     if (!input) return;
 
     const resultadosDiv = document.getElementById('resultados-mercancia');
-    let mercanciaSeleccionada = null;
-
+    
     // Cerrar resultados al hacer clic fuera
     document.addEventListener('click', function(e) {
         if (!input.contains(e.target) && !resultadosDiv.contains(e.target)) {
@@ -876,33 +868,31 @@ function cerrarModal() {
     });
 
     // Manejar selección
-    function seleccionarMercancia(id, nombre) {
-        mercanciaSeleccionada = { id_mrcc: id, mercancia_mrcc: nombre };
+    window.seleccionarMercancia = function(id, nombre) {
         input.value = nombre;
         resultadosDiv.style.display = 'none';
-    }
+        // Guardar selección globalmente
+        window.mercanciaSeleccionadaActual = { id_mrcc: id, mercancia_mrcc: nombre };
+    };
 
     // Evento de escritura
     input.addEventListener('input', function() {
         const term = this.value.trim();
         resultadosDiv.style.display = 'none';
         resultadosDiv.innerHTML = '';
+        
+        // Limpiar selección si se edita manualmente
+        window.mercanciaSeleccionadaActual = null;
 
-        if (term.length < 2) {
-            mercanciaSeleccionada = null;
-            return;
-        }
+        if (term.length < 2) return;
 
         clearTimeout(this.debounceTimer);
         this.debounceTimer = setTimeout(() => {
             fetch(`/api/get_mercancias_busqueda.php?term=${encodeURIComponent(term)}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (!Array.isArray(data) || data.length === 0) {
-                        resultadosDiv.style.display = 'none';
-                        return;
-                    }
-
+                    if (!Array.isArray(data) || data.length === 0) return;
+                    
                     resultadosDiv.innerHTML = '';
                     data.forEach(item => {
                         const el = document.createElement('div');
@@ -911,7 +901,7 @@ function cerrarModal() {
                             font-size: 0.95rem;
                         `;
                         el.textContent = item.mercancia_mrcc;
-                        el.onclick = () => seleccionarMercancia(item.id_mrcc, item.mercancia_mrcc);
+                        el.onclick = () => window.seleccionarMercancia(item.id_mrcc, item.mercancia_mrcc);
                         resultadosDiv.appendChild(el);
                     });
                     resultadosDiv.style.display = 'block';
@@ -923,9 +913,9 @@ function cerrarModal() {
         }, 300);
     });
 
-    // Exponer función para guardarRemesa()
+    // Función para obtener la selección actual
     window.getMercanciaSeleccionada = function() {
-        return mercanciaSeleccionada;
+        return window.mercanciaSeleccionadaActual || null;
     };
 })();
 </script>
