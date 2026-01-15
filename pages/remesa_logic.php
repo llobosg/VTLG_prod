@@ -1,7 +1,16 @@
 <?php
 require_once '../session_check.php';
 require_once '../config.php';
+
+// Definir $action desde POST o GET
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
 $pdo = getDBConnection();
+
+// Configurar cabecera JSON para respuestas
+if (!empty($action) || isset($_GET['getClientes']) || isset($_GET['getContactoById']) || isset($_GET['edit'])) {
+    header('Content-Type: application/json');
+}
 
 // === API: obtener contacto por ID cliente ===
 if (isset($_GET['getClientes'])) {
@@ -32,7 +41,6 @@ if (isset($_GET['edit'])) {
             }
         }
     }
-    header('Content-Type: application/json');
     echo json_encode($data ?: null);
     exit;
 }
@@ -196,6 +204,7 @@ if ($action === 'actualizar_remesa') {
     }
 }
 
+// Redirección por defecto
 header("Location: /pages/remesa_view.php");
 exit;
 ?>
