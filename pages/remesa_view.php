@@ -580,8 +580,12 @@ function cargarRemesa(id) {
                 for (let key in data) {
                     const el = document.getElementById(key);
                     if (!el) continue;
-
-                    if (el.type === 'number') {
+                    
+                    // ✅ CORRECCIÓN ESPECIAL PARA MERCANCÍA
+                    if (key === 'mercancia_rms') {
+                        const valor = data.mercancia_display || data[key] || '';
+                        el.value = valor;
+                    } else if (el.type === 'number') {
                         el.value = data[key] ?? '0.00';
                     } else if (el.classList.contains('input-number')) {
                         const val = parseFloat(data[key]) || 0;
