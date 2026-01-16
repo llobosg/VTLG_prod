@@ -248,7 +248,7 @@ $tramites = [
                     </div>
 
                     <div>REF.CLTE.</div>
-                    <div style="grid-column: span 2;"><input type="text" id="ref_clte_rms" class="erp-input" style="height: 2.0rem;"></div>
+                    <div style="grid-column: span 3;"><input type="text" id="ref_clte_rms" class="erp-input" style="height: 2.0rem;"></div>
                     <div></div>
 
                     <div>ADUANA</div>
