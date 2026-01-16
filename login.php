@@ -73,7 +73,7 @@
 </head>
 <body>
 <div class="login-container">
-    <img src="/includes/logo.png" alt="Logo VTLG" class="login-logo" onerror="this.style.display='none'">
+    <img src="/includes/LogoLG.jpeg" alt="Logo SIGA" class="login-logo" onerror="this.style.display='none'">
     <h2><i class="fas fa-lock"></i> Acceso al Sistema</h2>
     <?php if (isset($_GET['error'])): ?>
         <div class="error">Usuario o contraseña incorrectos</div>
