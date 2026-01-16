@@ -31,7 +31,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .login-logo {
-            width: 80px;
+            width: 100px;
             margin-bottom: 1rem;
             border-radius: 12px;
         }
