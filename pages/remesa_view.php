@@ -272,13 +272,48 @@ $tramites = [
                             <?php endwhile; ?>
                         </select>
                     </div>
+                    <?php
+                    // === DIAGNÓSTICO: Logging de valores de mercancía ===
+                    $mercancia_id = $remesa['mercancia_rms'] ?? null;
+                    $mercancia_nombre_cat = null;
+                    $mercancia_nombre_libre = $remesa['mercancia_nombre'] ?? null;
+                    $mercancia_display_final = '';
+
+                    // Obtener nombre del catálogo si existe ID
+                    if ($mercancia_id) {
+                        try {
+                            $mercStmt = $pdo->prepare("SELECT mercancia_mrcc FROM mercancias WHERE id_mrcc = ?");
+                            $mercStmt->execute([$mercancia_id]);
+                            $mercancia_nombre_cat = $mercStmt->fetchColumn();
+                        } catch (Exception $e) {
+                            error_log("Error al buscar mercancía en catálogo: " . $e->getMessage());
+                        }
+                    }
+
+                    // Determinar valor final a mostrar
+                    if (!empty($mercancia_nombre_libre)) {
+                        $mercancia_display_final = $mercancia_nombre_libre;
+                    } elseif (!empty($mercancia_nombre_cat)) {
+                        $mercancia_display_final = $mercancia_nombre_cat;
+                    } else {
+                        $mercancia_display_final = '';
+                    }
+
+                    // === LOGGING DETALLADO ===
+                    error_log("DIAGNÓSTICO MERCANCÍA - ID: " . json_encode($mercancia_id) . 
+                            ", Nombre Catálogo: " . json_encode($mercancia_nombre_cat) . 
+                            ", Nombre Libre: " . json_encode($mercancia_nombre_libre) . 
+                            ", Display Final: " . json_encode($mercancia_display_final));
+
+                    // === CAMPO DE MERCANCÍA ===
+                    ?>
                     <!-- Campo Mercancía -->
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-                        <label for="mercancia_rms" style="width: 120px;">MERCANCÍA:</label>
+                        <label for="mercancia_rms" style="width: 120px; font-weight: bold;">Mercancía:</label>
                         <div style="position: relative; flex: 1;">
                             <input type="text" 
                                 id="mercancia_rms" 
-                                value="<?= htmlspecialchars($remesa['mercancia_display'] ?? '') ?>"
+                                value="<?= htmlspecialchars($mercancia_display_final) ?>"
                                 placeholder="Escriba o seleccione una mercancía..."
                                 style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
                             <div id="resultados-mercancia" 
