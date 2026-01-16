@@ -192,7 +192,7 @@ $tramites = [
 
                 <!-- ESTADO -->
                 <div><label>ESTADO:</label></div>
-                <div>
+                <div value="0.00" style="width: 120px; text-align: center; height: 2.0rem;>
                     <select id="estado_rms" class="erp-input">
                         <?php foreach ($estados as $e): ?>
                             <option value="<?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?></option>
