@@ -619,7 +619,7 @@ function guardarRemesa() {
     // Obtener datos de mercancía
     const mercanciaInputValue = (document.getElementById('mercancia_rms')?.value || '').trim();
     const mercanciaSeleccionada = window.getMercanciaSeleccionada?.() || null;
-
+    
     let mercanciaNombre = '';
     if (mercanciaSeleccionada) {
         mercanciaNombre = mercanciaSeleccionada.mercancia_mrcc;
@@ -627,12 +627,10 @@ function guardarRemesa() {
         mercanciaNombre = mercanciaInputValue;
     }
 
-    formData.append('mercancia_rms', mercanciaNombre);
-
     // Preparar datos para envío
     formData.append('action', id_rms ? 'actualizar_remesa' : 'crear_remesa');
     formData.append('cliente_rms', document.getElementById('cliente_rms').value);
-    formData.append('mercancia_rms', mercanciaNombre); // Enviar nombre, no ID
+    formData.append('mercancia_rms', mercanciaNombre);
     formData.append('despacho_rms', document.getElementById('despacho_rms').value);
     formData.append('ref_clte_rms', document.getElementById('ref_clte_rms').value || '');
     formData.append('fecha_rms', document.getElementById('fecha_rms').value);
@@ -651,53 +649,55 @@ function guardarRemesa() {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                // Verificar si se ingresó una mercancía nueva
+                // Verificar si se ingresó una mercancía nueva (no seleccionada de la lista)
                 if (mercanciaInputValue && !mercanciaSeleccionada) {
-                    if (confirm('¿Desea agregar "' + mercanciaInputValue + '" al catálogo de mercancías?')) {
-                        // Guardar nueva mercancía
-                        const newMercData = new FormData();
-                        newMercData.append('action', 'crear_mercancia_catalogo');
-                        newMercData.append('mercancia_mrcc', mercanciaInputValue);
-                        
-                        fetch('/pages/mercancias_logic.php', { method: 'POST', body: newMercData })
-                            .then(r => r.json())
-                            .then(mercData => {
-                                if (mercData.success) {
-                                    alert('✅ Nueva mercancía agregada al catálogo.');
+                    // Verificar si ya existe en el catálogo
+                    fetch(`/api/get_mercancias_busqueda.php?term=${encodeURIComponent(mercanciaInputValue)}`)
+                        .then(res => res.json())
+                        .then(existingData => {
+                            const exists = Array.isArray(existingData) && existingData.some(item => 
+                                item.mercancia_mrcc.toLowerCase() === mercanciaInputValue.toLowerCase()
+                            );
+                            
+                            if (!exists) {
+                                // Preguntar al usuario si desea agregarla
+                                if (confirm(`¿Desea agregar "${mercanciaInputValue}" al catálogo de mercancías?`)) {
+                                    // Guardar nueva mercancía
+                                    const newMercData = new FormData();
+                                    newMercData.append('action', 'crear_mercancia_catalogo');
+                                    newMercData.append('mercancia_mrcc', mercanciaInputValue);
+                                    
+                                    fetch('/pages/mercancias_logic.php', { method: 'POST', body: newMercData })
+                                        .then(r => r.json())
+                                        .then(mercData => {
+                                            if (mercData.success) {
+                                                alert('✅ Nueva mercancía agregada al catálogo.');
+                                            } else {
+                                                alert('⚠️ ' + mercData.message);
+                                            }
+                                            // Redirigir igual
+                                            window.location.reload();
+                                        })
+                                        .catch(err => {
+                                            console.error('Error al guardar mercancía:', err);
+                                            window.location.reload();
+                                        });
                                 } else {
-                                    alert('⚠️ ' + mercData.message);
-                                }
-                                // Redirigir
-                                if (data.id_rms) {
-                                    window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
-                                } else {
+                                    // No guardar, solo recargar
                                     window.location.reload();
                                 }
-                            })
-                            .catch(err => {
-                                console.error('Error al guardar mercancía:', err);
-                                // Redirigir igual
-                                if (data.id_rms) {
-                                    window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
-                                } else {
-                                    window.location.reload();
-                                }
-                            });
-                    } else {
-                        // No guardar, solo redirigir
-                        if (data.id_rms) {
-                            window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
-                        } else {
+                            } else {
+                                // Ya existe, solo recargar
+                                window.location.reload();
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error al verificar existencia:', err);
                             window.location.reload();
-                        }
-                    }
+                        });
                 } else {
                     // Mercancía existente o vacía
-                    if (data.id_rms) {
-                        window.location.href = `/pages/remesa_view.php?id=${data.id_rms}`;
-                    } else {
-                        window.location.reload();
-                    }
+                    window.location.reload();
                 }
             } else {
                 alert('❌ ' + (data.message || 'Error al guardar.'));
