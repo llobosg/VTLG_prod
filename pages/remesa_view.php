@@ -192,7 +192,7 @@ $tramites = [
 
                 <!-- ESTADO -->
                 <div><label>ESTADO:</label></div>
-                <div style="width: 100px; text-align: center; height: 2.0rem;">
+                <div style="width: 120px; text-align: left; height: 2.0rem;">
                     <select id="estado_rms" class="erp-input">
                         <?php foreach ($estados as $e): ?>
                             <option value="<?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?></option>
@@ -201,7 +201,7 @@ $tramites = [
                 </div>
 
                 <!-- CLIENTE -->
-                <div><label>.      SRES.:</label></div>
+                <div style="text-align: right;"><label>SRES.:</label></div>
                 <div>
                     <select id="cliente_rms" name="cliente_rms" class="erp-input" onchange="cargarContactoDesdeAPI()">
                         <option value="">Seleccionar</option>
