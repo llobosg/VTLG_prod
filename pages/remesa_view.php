@@ -248,7 +248,7 @@ $tramites = [
                     </div>
 
                     <!-- REF.CLTE. ocupa 2 columnas completas -->
-                    <div style="grid-column: span 4;">
+                    <div style="grid-column: span 3;">
                         <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; align-items: center;">
                             <div>REF.CLTE.</div>
                             <div><input type="text" id="ref_clte_rms" class="erp-input" style="height: 2.0rem; width: 100%;"></div>
