@@ -201,7 +201,7 @@ $tramites = [
                 </div>
 
                 <!-- CLIENTE -->
-                <div><label>SRES.:</label></div>
+                <div><label>.      SRES.:</label></div>
                 <div>
                     <select id="cliente_rms" name="cliente_rms" class="erp-input" onchange="cargarContactoDesdeAPI()">
                         <option value="">Seleccionar</option>
