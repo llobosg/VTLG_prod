@@ -200,7 +200,7 @@ $clientes = $stmt->fetchAll();
     </div>
 
     <!-- === BÚSQUEDA INTELIGENTE === -->
-    <h3 style="margin-bottom: 0.8rem; font-weight: bold; margin-top: 2rem;">Búsqueda Rápida</h3>
+    <h3 style="margin-bottom: 0.8rem; margin-top: 2rem;">Búsqueda Rápida</h3>
     <div class="search-box">
         <input type="text" id="busqueda-inteligente" placeholder="Buscar cliente...">
         <div id="resultados-busqueda" class="search-results"></div>
