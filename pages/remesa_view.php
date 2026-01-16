@@ -231,25 +231,29 @@ $tramites = [
                 </div>
             </div>
 
-            <!-- FILAS NUEVAS (1-5) -->
-            <div>DESPACHO</div>
-            <div><input type="text" id="despacho_rms" class="erp-input" style="height: 2.0rem;"></div>
-            <div>TRÁMITE</div>
-            <div>
-                <select id="tramite_rms" class="erp-input" style="height: 2.0rem;">
-                    <?php foreach ($tramites as $t): ?>
-                        <option><?= htmlspecialchars($t) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <!-- Sección Media: 4 columnas × 17 filas -->
+            <div style="margin: 1.5rem 0;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; font-size: 0.9rem; align-items: center;">
 
-            <!-- REF.CLTE. ocupa 2 columnas completas -->
-            <div style="grid-column: span 4;">
-                <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; align-items: center;">
-                    <div>REF.CLTE.</div>
-                    <div><input type="text" id="ref_clte_rms" class="erp-input" style="height: 2.0rem; width: 100%;"></div>
-                </div>
-            </div>
+                    <!-- FILAS NUEVAS (1-5) -->
+                    <div>DESPACHO</div>
+                    <div><input type="text" id="despacho_rms" class="erp-input" style="height: 2.0rem;"></div>
+                    <div>TRÁMITE</div>
+                    <div>
+                        <select id="tramite_rms" class="erp-input" style="height: 2.0rem;">
+                            <?php foreach ($tramites as $t): ?>
+                                <option><?= htmlspecialchars($t) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- REF.CLTE. ocupa 2 columnas completas -->
+                    <div style="grid-column: span 4;">
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; align-items: center;">
+                            <div>REF.CLTE.</div>
+                            <div><input type="text" id="ref_clte_rms" class="erp-input" style="height: 2.0rem; width: 100%;"></div>
+                        </div>
+                    </div>
 
                     <div>ADUANA</div>
                     <div>
