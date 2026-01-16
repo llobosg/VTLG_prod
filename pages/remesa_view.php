@@ -47,19 +47,19 @@ if ($enumResult && preg_match("/^enum\((.+)\)$/", $enumResult['Type'], $matches)
     $aduanas = $enumMatches[1];
 }
 
-// === Cargar últimos 10 registros con JOINs ===
+// === Cargar últimos 10 registros con nombre de mercancía correcto ===
 $stmt = $pdo->query("
-    SELECT 
-        r.*,
-        c.nombre_clt AS cliente_nombre,
-        m.mercancia_mrcc AS mercancia_nombre,
-        t.transporte_trnsprt AS transporte_nombre
-    FROM remesa r
-    LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
-    LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
-    LEFT JOIN transporte t ON r.cia_transp_rms = t.id_trnsprt
-    ORDER BY r.fecha_rms DESC, r.id_rms DESC
-    LIMIT 10
+SELECT
+    r.*,
+    c.nombre_clt AS cliente_nombre,
+    COALESCE(r.mercancia_nombre, m.mercancia_mrcc) AS mercancia_nombre,
+    t.transporte_trnsprt AS transporte_nombre
+FROM remesa r
+LEFT JOIN clientes c ON r.cliente_rms = c.id_clt
+LEFT JOIN mercancias m ON r.mercancia_rms = m.id_mrcc
+LEFT JOIN transporte t ON r.cia_transp_rms = t.id_trnsprt
+ORDER BY r.fecha_rms DESC, r.id_rms DESC
+LIMIT 10
 ");
 $remesas = $stmt->fetchAll();
 
